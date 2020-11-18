@@ -1,0 +1,23 @@
+{
+  "name": "BasicDHISExport",
+  "version": "1.0.0",
+  "description": "RESTful APP For Sending Data To DHIS2",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": " — zip-file fileb://Lambda-CRUD-Deployment.zip",
+    "predeploy": "zip -r Lambda-CRUD-Deployment.zip * -x *.zip *.log"
+  },
+  "keywords": [],
+  "author": "Morris Baradza",
+  "license": "MIT",
+  "dependencies": {
+    "cross-fetch": "^3.0.6",
+    "dotenv": "^8.2.0",
+    "express": "^4.16.4",
+    "http": "0.0.0",
+    "node-cron": "^2.0.3",
+    "pg": "^7.9.0"
+  }
+}
