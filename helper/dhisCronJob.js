@@ -178,7 +178,6 @@ function exportToDHIS() {
                 console.log("Issues:--", res.conflicts);
               })
               .catch((err) => {
-                console.log("@@@---", err);
               });
           }
         }
