@@ -1,13 +1,11 @@
 {
-  "name": "BasicDHISExport",
+  "name": "dhis-integration",
   "version": "1.0.0",
   "description": "RESTful APP For Sending Data To DHIS2",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": " — zip-file fileb://Lambda-CRUD-Deployment.zip",
-    "predeploy": "zip -r Lambda-CRUD-Deployment.zip * -x *.zip *.log"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "Morris Baradza",

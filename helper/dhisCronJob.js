@@ -3,7 +3,7 @@ var cron = require("node-cron");
 const db = require("../queries");
 const valueUtils = require("./getValueFromKey");
 const fetch = require("cross-fetch");
-const config = require("../config/dev");
+const config = require("../config/dev").default;
 
 function exportToDHIS() {
   cron.schedule(
