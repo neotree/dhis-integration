@@ -4,20 +4,15 @@ const express = require('express')
 const http = require('http');
 const app = express()
 const server = http.createServer(app);
-const bodyParser = require('body-parser')
-const dhisServices = require('./helper/dhisCronJob');
+const dhisServices = require('./helper/cronJob');
 
-app.use(bodyParser.json())
-app.use(
-  bodyParser.urlencoded({
-    extended: true,
-  })
-)
+
 app.get('/', (request, response) => {
-  response.json({ info: 'Node.js, Express, and Postgres API' })
+  response.json({ info: 'WELLCOME TO NEOTREE-DHIS2 INTEGRATION' })
 })
 
-dhisServices.exportToDHIS();
+//dhisServices.exportToDHIS()
+dhisServices.updateSyncDB()
 
 server.listen(3008, () =>
   console.log(`Server is listening on port 3008.`)

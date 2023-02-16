@@ -4,11 +4,15 @@ let config = {
     DHIS_PW : process.env.DHIS_PW,
     DHIS_HOST : process.env.DHIS_HOST,
     DHIS_PORT : process.env.DHIS_PORT,
-    DBASE : process.env.DBASE,
-    DBASE_PW: process.env.DBASE_PW,
-    DBASE_USER : process.env.DBASE_USER,
+    DB : process.env.DB,
+    DB_PW: process.env.DB_PW,
+    DB_USER : process.env.DB_USER,
     DB_HOST : process.env.DB_HOST,
-    DB_PORT = process.env.DB_PORT
+    DB_PORT : process.env.DB_PORT,
+    ADMISSIONS : process.env.ADMISSIONS,
+    DISCHARGE : process.env.DISCHARGE,
+    MATERNALS: process.env.MATERNALS,
+    START_DATE : process.env.START_DATE,
 };
 
-export default config;
+module.exports = config;
