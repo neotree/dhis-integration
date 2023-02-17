@@ -1,5 +1,5 @@
 var cron = require("node-cron");
-const db = require("../queries/queries");
+const db = require("../queries/aggregate");
 //const fetch = require("cross-fetch");
 
 //function exportToDHIS() {
@@ -16,7 +16,7 @@ const db = require("../queries/queries");
 // }
 function updateSyncDB() {
   cron.schedule(
-    "*/2 * * * *",
+    "* * * * *",
     async () => {
       db.syncDhisAggregate()
     },
