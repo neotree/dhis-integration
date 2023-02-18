@@ -4,12 +4,9 @@ const aggregate = require("./queries")
   
 
 const syncDhisAggregate = async () => {
-  try{
-  await aggregate.updateDhisSyncDB();
-  const data = await aggregate.getUnsyncedData();
-  if(Array.isArray(data) && data.length>0){
-    aggregate.aggregateAllData(data);
-  }
+  try{ 
+ await aggregate.aggregateAllData();
+
 }catch(e){
   console.log(e)
 }
