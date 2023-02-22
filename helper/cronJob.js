@@ -16,7 +16,7 @@ const db = require("../queries/aggregate");
 // }
 function updateSyncDB() {
   cron.schedule(
-    "* * * * *",
+    " 17 19 * * *",
     async () => {
       db.syncDhisAggregate()
     },
