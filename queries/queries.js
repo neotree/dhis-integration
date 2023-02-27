@@ -35,99 +35,182 @@ const getUnsyncedData = async () => {
 
 async function aggregateNewBornComplications(entry, period) {
 
-  if(entry && entry.data && entry.data.entries){
-  //ASPHYXIA
-  if (entry.data.entries.hasOwnProperty('Birth Asphyxia')) {
-   await updateValues(mapper.NEWBORN_COMPLICATIONS_ASPHYXIA, period);
-  } else {
-    const apgar5 = entry.data.entries['Apgar5']?.values.value[0]
-    if (apgar5 && apgar5 < 7) {
-     await updateValues(mapper.NEWBORN_COMPLICATIONS_ASPHYXIA, period);
+  if (entry && entry.data && entry.data.entries) {
+    //ASPHYXIA
+    if (entry.data.entries.hasOwnProperty('Birth Asphyxia')) {
+      await updateValues(mapper.NEWBORN_COMPLICATIONS_ASPHYXIA, period);
+    } else {
+      const apgar5 = entry.data.entries['Apgar5']?.values.value[0]
+      if (apgar5 && apgar5 < 7) {
+        await updateValues(mapper.NEWBORN_COMPLICATIONS_ASPHYXIA, period);
+      }
     }
-  }
 
-  //OTHER 
+    //OTHER 
     const diagnoses = entry.data['diagnoses'] || []
     if (Array.isArray(diagnoses) && diagnoses.length > 0) {
       let filtered = diagnoses.filter(d => (!d['Birth Asphyxia']
-      && !d['Neonatal Sepsis'] && 
-      !d['Neonatal Sepsis (Early onset - Asymptomatic)']
-      && !d['Neonatal Sepsis (Early onset - Symptomatic)']
-      && !d['Neonatal Sepsis (Late onset - Asymptomatic)']
-      && !d['Low Birth Weight (1500-2499g)']
-      && !d['Very Low Birth Weight (1000-1499g)']
-      && !d['Extremely low birth weight (<1000g)']
-      && !d['Extremely Low Birth Weight (<1000g)']
-      && !d['Premature (32-36 weeks)']
-      && !d['Very Premature (28-31 weeks)']
-      && !d['Extremely Premature (<28 weeks)']
-      && !d['Prematurity with RD']
+        && !d['Neonatal Sepsis'] &&
+        !d['Neonatal Sepsis (Early onset - Asymptomatic)']
+        && !d['Neonatal Sepsis (Early onset - Symptomatic)']
+        && !d['Neonatal Sepsis (Late onset - Asymptomatic)']
+        && !d['Low Birth Weight (1500-2499g)']
+        && !d['Very Low Birth Weight (1000-1499g)']
+        && !d['Extremely low birth weight (<1000g)']
+        && !d['Extremely Low Birth Weight (<1000g)']
+        && !d['Premature (32-36 weeks)']
+        && !d['Very Premature (28-31 weeks)']
+        && !d['Extremely Premature (<28 weeks)']
+        && !d['Prematurity with RD']
       ));
-      
+
       if (filtered.length > 0) {
-       await updateValues(mapper.NEWBORN_COMPLICATIONS_OTHER, period);
+        await updateValues(mapper.NEWBORN_COMPLICATIONS_OTHER, period);
       }
     } else {
       // NONE
-     await updateValues(mapper.NEWBORN_COMPLICATIONS_NONE, period);
+      await updateValues(mapper.NEWBORN_COMPLICATIONS_NONE, period);
     }
-  
-  // PREMATURITY
-  if (entry.data.entries.hasOwnProperty('Premature (32-36 weeks)') || entry.data.entries.hasOwnProperty('Very Premature (28-31 weeks)')
-    || entry.data.entries.hasOwnProperty('Extremely Premature (<28 weeks)')||
-    entry.data.entries.hasOwnProperty('Prematurity with RD')) {
-   await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);
-  } else {
-    // PREMATURITY BY GESTATION
-    const gestation = entry.data.entries['Gestation']?.values.value[0]
-    if (gestation && gestation < 37) {
-     await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);
+
+    // PREMATURITY
+    if (entry.data.entries.hasOwnProperty('Premature (32-36 weeks)') || entry.data.entries.hasOwnProperty('Very Premature (28-31 weeks)')
+      || entry.data.entries.hasOwnProperty('Extremely Premature (<28 weeks)') ||
+      entry.data.entries.hasOwnProperty('Prematurity with RD')) {
+      await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);
     } else {
-      // PREMATURITY BY BIRTH WEIGHT
-      const birthWeight = entry.data.entries['BirthWeight']?.values.value[0]
-      if (birthWeight && birthWeight < 2500) {
-       await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);  
-        // LOW BIRTH WEIGHT
-       await updateValues(mapper.NEWBORN_COMPLICATIONS_LBW, period);
+      // PREMATURITY BY GESTATION
+      const gestation = entry.data.entries['Gestation']?.values.value[0]
+      if (gestation && gestation < 37) {
+        await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);
+      } else {
+        // PREMATURITY BY BIRTH WEIGHT
+        const birthWeight = entry.data.entries['BirthWeight']?.values.value[0]
+        if (birthWeight && birthWeight < 2500) {
+          await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);
+          // LOW BIRTH WEIGHT
+          await updateValues(mapper.NEWBORN_COMPLICATIONS_LBW, period);
+        }
+
       }
 
     }
-
-  }
-  // SEPSIS
-  if (entry.data.entries?.hasOwnProperty('Neonatal Sepsis')
-    || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Early onset - Asymptomatic)')
-    || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Early onset - Symptomatic)')
-      || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Late onset - Asymptomatic)')){
-     await updateValues(mapper.NEWBORN_COMPLICATIONS_SEPSIS, period);
-  } else{
-    // SEPSIS BY RISK FACTORS
-    const riskFactors= entry.data.entries['RFSepsis']?.values.value
-    if(riskFactors && Array.isArray(riskFactors)){
-      if(riskFactors[0]!=='NONE'){
-       await updateValues(mapper.NEWBORN_COMPLICATIONS_SEPSIS, period);
+    // SEPSIS
+    if (entry.data.entries?.hasOwnProperty('Neonatal Sepsis')
+      || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Early onset - Asymptomatic)')
+      || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Early onset - Symptomatic)')
+      || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Late onset - Asymptomatic)')) {
+      await updateValues(mapper.NEWBORN_COMPLICATIONS_SEPSIS, period);
+    } else {
+      // SEPSIS BY RISK FACTORS
+      const riskFactors = entry.data.entries['RFSepsis']?.values.value
+      if (riskFactors && Array.isArray(riskFactors) && !riskFactors.includes('NONE')) {
+          await updateValues(mapper.NEWBORN_COMPLICATIONS_SEPSIS, period);
       }
     }
   }
+}
+
+async function aggregateComplicationsManagement(entry, period,isAdmission) {
+
+  if (entry && entry.data && entry.data.entries) {
+  
+  if(isAdmission){  
+  const plan = entry.data.entries['Plan']?.values.value || []
+  if(plan && Array.isArray(plan) && plan.length>0){
+   //KANGAROO
+   if(plan.includes('KMC')){
+    await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_KMC, period);
+   }
+  
+   // OTHER
+   const filteredPlan = plan.filter(p=>!String(p)=='KMC' && !String(p)=='Res')
+   if(filteredPlan.length>0){
+    await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_OTHER, period);
+   }
+  
   }
+} else{
+  const meds = entry.data.entries['MedsGiven']?.values.value || []
+  if(meds && Array.isArray(meds) && meds.length>0){
+   const filteredMeds = meds.filter(m=>String(m)=='BP' || String(m)=='GENT' || String(m)=='CEF' 
+   || String(m)=='AMOX' || String(m)=='FLU' || String(m)=='IMI' || String(m)=='MET' || String(m)=='Mero')
+   if(filteredMeds.length>0){
+    await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_ANTIBIOTICS, period);
+   }
+  }
+   //RESUSCITATION
+   const resus = entry.data.entries['Resus']?.values.value || []
+   if(resus.length>0 && Array.isArray(resus) && !resus.includes('NONE')){
+    await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_RESC, period);
+   }
+}
+}
 }
 
-async function aggregateComplicationsManagement(entry, period) {
 
-}
+async function aggregateNewBornSurvival(entry, period,isMaternity) {
+  if (entry && entry.data && entry.data.entries){
+    if(isMaternity){
+      const outcome =  e.data.entries['NeoTreeOutcome']?.values.value[0];
+      if(outcome=='SBF'){
+        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_STILL_FRESH, period);
+      }else if(outcome=='SBM'){
+        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_STILLBIRTH_MASCERATED, period);
+      }
 
+    } else{
+      //IN DISCHARGE SCRIPT
+   const outcome =  e.data.entries['NeoTreeOutcome']?.values.value[0];
+   const hivExposure = e.data.entries['HIVtestResultDC']?.values.value[0];
+   const nvpGiven = e.data.entries['NVPgiven']?.values.value[0];
+   if(outcome=='BID' || outcome=='NND>24' || outcome=='NND<24'){
+    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_NEONATAL_DEATH, period);  
+   }
+   if(hivExposure =='R' && nvpGiven=='N'){
+    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NO_NVP, period); 
+   } else if(hivExposure =='R' && nvpGiven=='Y'){
+    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NVP_STARTED, period); 
+   } else if(hivExposure=='UNK'){
+    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_UNKOWN_EXP, period);
+   } else if(hivExposure=='NR'){
+    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_NOT_HIV_EXP, period);
+   }
 
-async function aggregateNewBornSurvival(entry, period) {
-  // IN CASES OF ADM & DISCH, GET DISCHARGE OUTCOME FIRST AND FIND MATCHING ADM FROM SESSIONS TO CHECK IF ADM RULES ARE MET
-  // UPDATE STATUS IN dhis_sync after full entry is processed
+  }
+
+  }
 }
 
 
 async function aggregateBreastFeedingInitiated(entry, period) {
-
+  if (entry && entry.data && entry.data.entries){
+    const feeds = entry.data.entries['FeedsAdm']?.values.value || []
+    if(feeds && Array.isArray(feeds) && feeds.length>0){
+      if(feeds.includes('BF')){
+        await updateValues(mapper.BREAST_FEEDING_INITIATED, period);
+      }
+    }
+  }
 }
 
 async function aggregateRoutineCare(entry, period) {
+  if (entry && entry.data && entry.data.entries){
+    const meds = entry.data.entries['MedsGiven']?.values.value || []
+    const vitK = entry.data.entries['VitK']?.values.value[0]
+    const chlx = entry.data.entries['Chlor']?.values.value[0]
+  if(meds && Array.isArray(meds) && meds.length>0){
+    // Chlorohexidine
+    if((chlx && chlx=='Y') ||meds.includes('CHLX')){
+      await updateValues(mapper.ROUTINE_CARE_CHLOROHEXIDINE_GIVEN, period);
+    }
+    //Vitamin K
+    if((vitK&& vitK=='Y')||meds.includes('VitK')){
+      await updateValues(mapper.ROUTINE_CARE_VITK_GIVEN, period);
+    }
+
+  }
+
+  }
 
 }
 
@@ -143,7 +226,7 @@ async function aggregateAllData() {
           const period = getReportingPeriod(admissionDate)
           if (period != null) {
             await aggregateNewBornComplications(e, period);
-            await aggregateComplicationsManagement(e, period);
+            await aggregateComplicationsManagement(e, period,true);
           }
         }
 
@@ -152,9 +235,10 @@ async function aggregateAllData() {
         if (dischargeDate) {
           const period = getReportingPeriod(dischargeDate)
           if (period != null) {
-           await aggregateNewBornSurvival(e, period);
-           await aggregateBreastFeedingInitiated(e, period)
-           await aggregateRoutineCare(e, period);
+            await aggregateComplicationsManagement(e, period,false);
+            await aggregateNewBornSurvival(e, period,false);
+            await aggregateBreastFeedingInitiated(e, period)
+            await aggregateRoutineCare(e, period);
           }
         }
       } else if (e.scriptid === '-MOAjJ_In4TOoe0l_Gl5') {
@@ -162,7 +246,7 @@ async function aggregateAllData() {
         if (admissionDate) {
           const period = getReportingPeriod(admissionDate)
           if (period) {
-           await aggregateNewBornSurvival(e, period);
+            await aggregateNewBornSurvival(e, period,true);
           }
 
         }
@@ -213,9 +297,9 @@ const updateDhisSyncDB = async () => {
   })
 }
 
-function updateDHISSyncStatus(entryId) {
+async function updateDHISSyncStatus(entryId) {
   if (entryId) {
-    pool.query(`UPDATE public.dhis_sync SET synced = TRUE WHERE id=${entryId}`);
+    await pool.query(`UPDATE public.dhis_sync SET synced = TRUE WHERE id=${entryId}`);
   }
 }
 
@@ -232,7 +316,7 @@ async function updateValues(element, period) {
 async function columnExists(element, period) {
   return await pool.query(`select exists(select 1 from public.dhis_aggregate where element='${element}' and period='${period}') AS "exists"`)
     .then(res => {
-      if (res && res.rows && Array.isArray(res.rows) && res.rows.length>0) {
+      if (res && res.rows && Array.isArray(res.rows) && res.rows.length > 0) {
         var jsonString = JSON.stringify(res.rows[0]);
         var jsonObj = JSON.parse(jsonString);
         return jsonObj['exists'];
