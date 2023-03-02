@@ -1,22 +1,21 @@
 var cron = require("node-cron");
 const db = require("../queries/aggregate");
-//const fetch = require("cross-fetch");
 
-//function exportToDHIS() {
-//   cron.schedule(
-//     "*/2 * * * *",
-//     async () => {
-//       db.updateDhisSyncDB()
-//     },
-//     {
-//       scheduled: true,
-//       timezone: "Africa/Harare",
-//     }
-//   );
-// }
-function updateSyncDB() {
+function updateSyncDBMorning() {
   cron.schedule(
-    " 17 19 * * *",
+    "30 04 * * *",
+    async () => {
+      db.syncDhisAggregate()
+    },
+    {
+      scheduled: true,
+      timezone: "Africa/Harare",
+    }
+  );
+}
+function updateSyncDBMidMorning() {
+  cron.schedule(
+    "30 11 * * *",
     async () => {
       db.syncDhisAggregate()
     },
@@ -27,4 +26,32 @@ function updateSyncDB() {
   );
 }
 
-module.exports = { updateSyncDB};
+function updateSyncDBAfternoon() {
+  cron.schedule(
+    "30 15 * * *",
+    async () => {
+      db.syncDhisAggregate()
+    },
+    {
+      scheduled: true,
+      timezone: "Africa/Harare",
+    }
+  );
+}
+function updateSyncDBNight() {
+  cron.schedule(
+    "30 20 * * *",
+    async () => {
+      db.syncDhisAggregate()
+    },
+    {
+      scheduled: true,
+      timezone: "Africa/Harare",
+    }
+  );
+}
+
+
+
+module.exports = { updateSyncDBMorning,updateSyncDBMidMorning,updateSyncDBAfternoon,updateSyncDBNight
+};

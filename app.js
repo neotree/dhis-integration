@@ -11,8 +11,10 @@ app.get('/', (request, response) => {
   response.json({ info: 'WELLCOME TO NEOTREE-DHIS2 INTEGRATION' })
 })
 
-//dhisServices.exportToDHIS()
-dhisServices.updateSyncDB()
+dhisServices.updateSyncDBMorning();
+dhisServices.updateSyncDBMidMorning();
+dhisServices.updateSyncDBAfternoon();
+dhisServices.updateSyncDBNight();
 
 server.listen(3008, () =>
   console.log(`Server is listening on port 3008.`)

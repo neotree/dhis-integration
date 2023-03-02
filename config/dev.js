@@ -13,6 +13,8 @@ let config = {
     DISCHARGE : process.env.DISCHARGE,
     MATERNALS: process.env.MATERNALS,
     START_DATE : process.env.START_DATE,
+    DHIS_ORGUNIT: process.env.DHIS_ORGUNIT,
+    DHIS_DATASET: process.env.DHIS_DATASET
 };
 
 module.exports = config;

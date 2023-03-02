@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const config = require("../config/dev");
 const getReportingPeriod = require("../helper/utils").getReportingPeriod
 const mapper = require('../queries/mapper')
+const fetch = require("cross-fetch");
 const connectionString = `postgresql://${config.DB_USER}:${config.DB_PW}@${config.DB_HOST}:${config.DB_PORT}/${config.DB}`;
 
 
@@ -10,9 +11,9 @@ const pool = new Pool({
   connectionString: connectionString,
 })
 
-const getUnsyncedData = async () => {
+async function getUnsyncedData() {
   //SELECT DATA TO UPDATE
-  return await pool.query(`SELECT id,scriptid, data FROM public.dhis_sync WHERE synced = False `)
+  return await pool.query(`SELECT id,scriptid, data FROM public.dhis_sync WHERE synced is false limit 1000`)
     .then(res => {
       if (res && res.rows) {
         var jsonString = JSON.stringify(res.rows);
@@ -31,7 +32,26 @@ const getUnsyncedData = async () => {
     })
 }
 
+async function getDHISSyncData() {
 
+  return await pool.query(`SELECT value,element,period FROM public.dhis_aggregate`)
+    .then(res => {
+      if (res && res.rows) {
+        var jsonString = JSON.stringify(res.rows);
+        var jsonObj = JSON.parse(jsonString);
+        return jsonObj;
+      } else {
+        return []
+      }
+    })
+    .catch(err => {
+      if (String(err).includes("does not exist")) {
+        return []
+      } else {
+        throw new Error(err)
+      }
+    })
+}
 
 async function aggregateNewBornComplications(entry, period) {
 
@@ -104,89 +124,89 @@ async function aggregateNewBornComplications(entry, period) {
       // SEPSIS BY RISK FACTORS
       const riskFactors = entry.data.entries['RFSepsis']?.values.value
       if (riskFactors && Array.isArray(riskFactors) && !riskFactors.includes('NONE')) {
-          await updateValues(mapper.NEWBORN_COMPLICATIONS_SEPSIS, period);
+        await updateValues(mapper.NEWBORN_COMPLICATIONS_SEPSIS, period);
       }
     }
   }
 }
 
-async function aggregateComplicationsManagement(entry, period,isAdmission) {
+async function aggregateComplicationsManagement(entry, period, isAdmission) {
 
   if (entry && entry.data && entry.data.entries) {
-  
-  if(isAdmission){  
-  const plan = entry.data.entries['Plan']?.values.value || []
-  if(plan && Array.isArray(plan) && plan.length>0){
-   //KANGAROO
-   if(plan.includes('KMC')){
-    await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_KMC, period);
-   }
-  
-   // OTHER
-   const filteredPlan = plan.filter(p=>!String(p)=='KMC' && !String(p)=='Res')
-   if(filteredPlan.length>0){
-    await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_OTHER, period);
-   }
-  
+
+    if (isAdmission) {
+      const plan = entry.data.entries['Plan']?.values.value || []
+      if (plan && Array.isArray(plan) && plan.length > 0) {
+        //KANGAROO
+        if (plan.includes('KMC')) {
+          await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_KMC, period);
+        }
+
+        // OTHER
+        const filteredPlan = plan.filter(p => !String(p) == 'KMC' && !String(p) == 'Res')
+        if (filteredPlan.length > 0) {
+          await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_OTHER, period);
+        }
+
+      }
+    } else {
+      const meds = entry.data.entries['MedsGiven']?.values.value || []
+      if (meds && Array.isArray(meds) && meds.length > 0) {
+        const filteredMeds = meds.filter(m => String(m) == 'BP' || String(m) == 'GENT' || String(m) == 'CEF'
+          || String(m) == 'AMOX' || String(m) == 'FLU' || String(m) == 'IMI' || String(m) == 'MET' || String(m) == 'Mero')
+        if (filteredMeds.length > 0) {
+          await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_ANTIBIOTICS, period);
+        }
+      }
+      //RESUSCITATION
+      const resus = entry.data.entries['Resus']?.values.value || []
+      if (resus.length > 0 && Array.isArray(resus) && !resus.includes('NONE')) {
+        await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_RESC, period);
+      }
+    }
   }
-} else{
-  const meds = entry.data.entries['MedsGiven']?.values.value || []
-  if(meds && Array.isArray(meds) && meds.length>0){
-   const filteredMeds = meds.filter(m=>String(m)=='BP' || String(m)=='GENT' || String(m)=='CEF' 
-   || String(m)=='AMOX' || String(m)=='FLU' || String(m)=='IMI' || String(m)=='MET' || String(m)=='Mero')
-   if(filteredMeds.length>0){
-    await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_ANTIBIOTICS, period);
-   }
-  }
-   //RESUSCITATION
-   const resus = entry.data.entries['Resus']?.values.value || []
-   if(resus.length>0 && Array.isArray(resus) && !resus.includes('NONE')){
-    await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_RESC, period);
-   }
-}
-}
 }
 
 
-async function aggregateNewBornSurvival(entry, period,isMaternity) {
-  if (entry && entry.data && entry.data.entries){
-    if(isMaternity){
-      const outcome =  e.data.entries['NeoTreeOutcome']?.values.value[0];
-      if(outcome=='SBF'){
+async function aggregateNewBornSurvival(entry, period, isMaternity) {
+  if (entry && entry.data && entry.data.entries) {
+    if (isMaternity) {
+      const outcome = e.data.entries['NeoTreeOutcome']?.values.value[0];
+      if (outcome == 'SBF') {
         await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_STILL_FRESH, period);
-      }else if(outcome=='SBM'){
+      } else if (outcome == 'SBM') {
         await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_STILLBIRTH_MASCERATED, period);
       }
 
-    } else{
+    } else {
       //IN DISCHARGE SCRIPT
-   const outcome =  e.data.entries['NeoTreeOutcome']?.values.value[0];
-   const hivExposure = e.data.entries['HIVtestResultDC']?.values.value[0];
-   const nvpGiven = e.data.entries['NVPgiven']?.values.value[0];
-   if(outcome=='BID' || outcome=='NND>24' || outcome=='NND<24'){
-    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_NEONATAL_DEATH, period);  
-   }
-   if(hivExposure =='R' && nvpGiven=='N'){
-    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NO_NVP, period); 
-   } else if(hivExposure =='R' && nvpGiven=='Y'){
-    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NVP_STARTED, period); 
-   } else if(hivExposure=='UNK'){
-    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_UNKOWN_EXP, period);
-   } else if(hivExposure=='NR'){
-    await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_NOT_HIV_EXP, period);
-   }
+      const outcome = e.data.entries['NeoTreeOutcome']?.values.value[0];
+      const hivExposure = e.data.entries['HIVtestResultDC']?.values.value[0];
+      const nvpGiven = e.data.entries['NVPgiven']?.values.value[0];
+      if (outcome == 'BID' || outcome == 'NND>24' || outcome == 'NND<24') {
+        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_NEONATAL_DEATH, period);
+      }
+      if (hivExposure == 'R' && nvpGiven == 'N') {
+        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NO_NVP, period);
+      } else if (hivExposure == 'R' && nvpGiven == 'Y') {
+        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NVP_STARTED, period);
+      } else if (hivExposure == 'UNK') {
+        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_UNKOWN_EXP, period);
+      } else if (hivExposure == 'NR') {
+        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_NOT_HIV_EXP, period);
+      }
 
-  }
+    }
 
   }
 }
 
 
 async function aggregateBreastFeedingInitiated(entry, period) {
-  if (entry && entry.data && entry.data.entries){
+  if (entry && entry.data && entry.data.entries) {
     const feeds = entry.data.entries['FeedsAdm']?.values.value || []
-    if(feeds && Array.isArray(feeds) && feeds.length>0){
-      if(feeds.includes('BF')){
+    if (feeds && Array.isArray(feeds) && feeds.length > 0) {
+      if (feeds.includes('BF')) {
         await updateValues(mapper.BREAST_FEEDING_INITIATED, period);
       }
     }
@@ -194,21 +214,21 @@ async function aggregateBreastFeedingInitiated(entry, period) {
 }
 
 async function aggregateRoutineCare(entry, period) {
-  if (entry && entry.data && entry.data.entries){
+  if (entry && entry.data && entry.data.entries) {
     const meds = entry.data.entries['MedsGiven']?.values.value || []
     const vitK = entry.data.entries['VitK']?.values.value[0]
     const chlx = entry.data.entries['Chlor']?.values.value[0]
-  if(meds && Array.isArray(meds) && meds.length>0){
-    // Chlorohexidine
-    if((chlx && chlx=='Y') ||meds.includes('CHLX')){
-      await updateValues(mapper.ROUTINE_CARE_CHLOROHEXIDINE_GIVEN, period);
-    }
-    //Vitamin K
-    if((vitK&& vitK=='Y')||meds.includes('VitK')){
-      await updateValues(mapper.ROUTINE_CARE_VITK_GIVEN, period);
-    }
+    if (meds && Array.isArray(meds) && meds.length > 0) {
+      // Chlorohexidine
+      if ((chlx && chlx == 'Y') || meds.includes('CHLX')) {
+        await updateValues(mapper.ROUTINE_CARE_CHLOROHEXIDINE_GIVEN, period);
+      }
+      //Vitamin K
+      if ((vitK && vitK == 'Y') || meds.includes('VitK')) {
+        await updateValues(mapper.ROUTINE_CARE_VITK_GIVEN, period);
+      }
 
-  }
+    }
 
   }
 
@@ -220,46 +240,46 @@ async function aggregateAllData() {
   const data = await getUnsyncedData();
   if (Array.isArray(data) && data.length > 0) {
     for (e of data) {
-      if (e.scriptid === '-KO1TK4zMvLhxTw6eKia') {
+      if (e.scriptid =='-KO1TK4zMvLhxTw6eKia') {
         const admissionDate = e.data.entries['DateTimeAdmission']?.values.value[0];
         if (admissionDate) {
           const period = getReportingPeriod(admissionDate)
           if (period != null) {
             await aggregateNewBornComplications(e, period);
-            await aggregateComplicationsManagement(e, period,true);
+            await aggregateComplicationsManagement(e, period, true);
           }
         }
-
-      } else if (e.scriptid === '-KYDiO2BTM4kSGZDVXAO') {
+      } else if (e.scriptid =='-KYDiO2BTM4kSGZDVXAO') {
         const dischargeDate = e.data.entries['DateTimeDischarge']?.values.value[0] || e.data.entries['DateTimeDeath']?.values.value[0];
         if (dischargeDate) {
           const period = getReportingPeriod(dischargeDate)
           if (period != null) {
-            await aggregateComplicationsManagement(e, period,false);
-            await aggregateNewBornSurvival(e, period,false);
+            await aggregateComplicationsManagement(e, period, false);
+            await aggregateNewBornSurvival(e, period, false);
             await aggregateBreastFeedingInitiated(e, period)
             await aggregateRoutineCare(e, period);
           }
         }
-      } else if (e.scriptid === '-MOAjJ_In4TOoe0l_Gl5') {
+      } else if (e.scriptid =='-MOAjJ_In4TOoe0l_Gl5') {
+        console.log("===MAT")
         const admissionDate = e.data.entries['DateAdmission']?.values.value[0];
         if (admissionDate) {
           const period = getReportingPeriod(admissionDate)
           if (period) {
-            await aggregateNewBornSurvival(e, period,true);
+            await aggregateNewBornSurvival(e, period, true);
           }
 
         }
 
       } else {
-        //DO NOTHING
+    
       }
       //UPDATE dhis_sync STATUS HERE
-      // updateDHISSyncStatus(e.id)
+     await updateDHISSyncStatus(e.id)
     }
   }
 }
-const updateDhisSyncDB = async () => {
+async function updateDhisSyncDB(){
   //CREATE SYNC TABLE
   await pool.query(`CREATE TABLE IF NOT EXISTS public.dhis_sync (
       id serial PRIMARY KEY,
@@ -284,7 +304,7 @@ const updateDhisSyncDB = async () => {
   const scripts = [config.ADMISSIONS, config.DISCHARGE, config.MATERNALS];
   let sync_start_date = config.START_DATE
   // DEDUPLICATE AND SYNC DATA
-  scripts.forEach(async (s) => {
+  for (s of scripts){
     let query = `
       INSERT INTO public.dhis_sync 
       SELECT DISTINCT ON (uid,scriptid) id,data::jsonb,uid,scriptid,ingested_at
@@ -294,7 +314,7 @@ const updateDhisSyncDB = async () => {
       AND uid NOT IN (SELECT uid FROM public.dhis_sync WHERE scriptid ='${s}')
       ORDER BY uid,scriptid,id`
     await pool.query(query)
-  })
+  }
 }
 
 async function updateDHISSyncStatus(entryId) {
@@ -328,9 +348,43 @@ async function columnExists(element, period) {
 
 async function syncToDhis() {
   //GET ALL THE DATA
-  // POSSIBILITY TO AGGREGATE AND SYNC AT ONE GOAL
-}
+  const data = await getDHISSyncData()
+  const orgUnit = config.DHIS_ORGUNIT
+  const dataSet = config.DHIS_DATASET
+  if (data && Array.isArray(data) && data.length > 0) {
+    const url = `${config.DHIS_HOST}:${config.DHIS_PORT}/api/dataValueSets`;
+    var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
+    for (d of data) {
+      let body = {
+        dataSet: dataSet,
+        period: d.period,
+        dataValues: {
+          dataElement: d.element,
+          value: d.value,
+          orgUnit: orgUnit,
+        },
+      };
+      let reqOpts = {};
+      reqOpts.headers = { Authorization: auth };
+      reqOpts.headers["Content-Type"] = "application/json";
+      reqOpts.body = JSON.stringify({ ...body });
 
-module.exports = {
-  aggregateAllData
-}
+      fetch(url, {
+        method: "POST",
+        ...reqOpts,
+      })
+        .then((res) => res.json())
+        .then((res) => {
+          console.log("res===",res)
+        })
+        .catch((err) => {
+          console.log("err===",err)
+        });
+
+    }
+  }
+  }
+
+  module.exports = {
+    aggregateAllData, syncToDhis
+  }
