@@ -3,7 +3,7 @@ const db = require("../queries/aggregate");
 
 function updateSyncDBMorning() {
   cron.schedule(
-    "*/30 * * * *",
+    "30 06 * * *",
     async () => {
       db.syncDhisAggregate()
     },
@@ -15,7 +15,7 @@ function updateSyncDBMorning() {
 }
 function updateSyncDBMidMorning() {
   cron.schedule(
-    "30 11 * * *",
+    "30 10 * * *",
     async () => {
       db.syncDhisAggregate()
     },
@@ -50,8 +50,20 @@ function updateSyncDBNight() {
     }
   );
 }
+function updateSyncDBTest() {
+  cron.schedule(
+    "* * * * *",
+    async () => {
+      db.syncTest()
+    },
+    {
+      scheduled: true,
+      timezone: "Africa/Harare",
+    }
+  );
+}
 
 
 
-module.exports = { updateSyncDBMorning,updateSyncDBMidMorning,updateSyncDBAfternoon,updateSyncDBNight
-};
+module.exports = { updateSyncDBMorning,updateSyncDBMidMorning,updateSyncDBAfternoon,updateSyncDBNight,updateSyncDBTest}
+

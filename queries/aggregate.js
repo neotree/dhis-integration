@@ -15,9 +15,15 @@ const syncDhisAggregate = async () => {
   
 }
 
-
+const syncTest = async () =>{
+  try{
+    await aggregate.syncTest();
+  }catch(e){
+    console.log(e)
+  }
+}
 
 module.exports = {
-  syncDhisAggregate
+  syncDhisAggregate, syncTest
 }
 

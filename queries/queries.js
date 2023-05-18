@@ -354,15 +354,16 @@ async function syncToDhis() {
   if (data && Array.isArray(data) && data.length > 0) {
     const url = `${config.DHIS_HOST}:${config.DHIS_PORT}/api/dataValueSets`;
     var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
+
     for (d of data) {
       let body = {
         dataSet: dataSet,
         period: d.period,
-        dataValues: {
+        dataValues: [{
           dataElement: d.element,
           value: d.value,
           orgUnit: orgUnit,
-        },
+        }],
       };
       let reqOpts = {};
       reqOpts.headers = { Authorization: auth };
@@ -384,7 +385,40 @@ async function syncToDhis() {
     }
   }
   }
+  async function syncTest() {
+    //GET ALL THE DATA
+    const orgUnit = config.DHIS_ORGUNIT
+    const dataSet = config.DHIS_DATASET
+      const url = `${config.DHIS_HOST_TEST}/api/dataValueSets`;
+      var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
+        let body = {
+          dataSet: dataSet,
+          period: '202303',
+          dataValues: [{
+            dataElement: 'zANGFtNoUEt',
+            value: 3,
+            orgUnit: orgUnit,
+          }],
+        };
+        let reqOpts = {};
+        reqOpts.headers = { Authorization: auth };
+        reqOpts.headers["Content-Type"] = "application/json";
+        reqOpts.body = JSON.stringify({ ...body });
+  
+        fetch(url, {
+          method: "POST",
+          ...reqOpts,
+        })
+          .then((res) => {
+            console.log("res===",res)
+          })
+          .catch((err) => {
+            console.log("err===",err)
+          });
+  
+      }
+    
 
   module.exports = {
-    aggregateAllData, syncToDhis
+    aggregateAllData, syncToDhis,syncTest
   }

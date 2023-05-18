@@ -3,6 +3,7 @@ let config = {
     DHIS_USER :process.env.DHIS_USER,
     DHIS_PW : process.env.DHIS_PW,
     DHIS_HOST : process.env.DHIS_HOST,
+    DHIS_HOST_TEST : process.env.DHIS_HOST_TEST,
     DHIS_PORT : process.env.DHIS_PORT,
     DB : process.env.DB,
     DB_PW: process.env.DB_PW,
