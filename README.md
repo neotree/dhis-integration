@@ -7,7 +7,7 @@ Efforts to create a generic component are underway.
 
 
 # Setting Up
-1. git clone https://github.com/mbaradza/neotreeDHISCronJob.git
+1. git clone https://github.com/neotree/dhis-integration.git
 2. Add a .env file and add all configurations that are referenced in /config/dev
 3. cd neotree-dhis2-api
 4. npm install
