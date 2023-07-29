@@ -1,0 +1,33 @@
+DHIS_USER= dhis2user
+
+DHIS_PW= my_working_password
+
+DHIS_HOST= https://mydhis2host.com
+
+DHIS_PORT= 8087
+
+DB= my_neotree_databse
+
+DB_PW= my_dbase_password
+
+DB_USER= my_dbase_user
+
+DB_HOST= db_host.mydomain.org
+
+DB_PORT= mydb_port (eg 5432)
+
+ADMISSIONS= (admission script id)
+
+DISCHARGE= (discharge script id)
+
+MATERNALS=  (maternal outcomes script id)
+
+START_DATE= (date you want the data syncing to start e.g 2022-07-01)
+
+DHIS_ORGUNIT= dhis 2 organisational unit id
+
+DHIS_DATASET= dhis 2 data set id
+
+NODE_TLS_REJECT_UNAUTHORIZED=(to be only used when running a test instance, should be disabled for production)
+
+
