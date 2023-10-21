@@ -260,8 +260,7 @@ async function aggregateAllData() {
             await aggregateRoutineCare(e, period);
           }
         }
-      } else if (e.scriptid =='-MOAjJ_In4TOoe0l_Gl5') {
-        console.log("===MAT")
+      } else if (e.scriptid =='-MeiOtRPbZKqsr4A9DoA') {
         const admissionDate = e.data.entries['DateAdmission']?.values.value[0];
         if (admissionDate) {
           const period = getReportingPeriod(admissionDate)
