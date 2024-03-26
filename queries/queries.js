@@ -351,7 +351,7 @@ async function syncToDhis() {
   const orgUnit = config.DHIS_ORGUNIT
   const dataSet = config.DHIS_DATASET
   if (data && Array.isArray(data) && data.length > 0) {
-    const url = `${config.DHIS_HOST}:${config.DHIS_PORT}/api/dataValueSets`;
+    const url = `${config.DHIS_HOST}/api/dataValueSets`;
     var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
 
     for (d of data) {
