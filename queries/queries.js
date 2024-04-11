@@ -293,6 +293,7 @@ async function updateDhisSyncDB(){
       value INT DEFAULT 0,
       element VARCHAR (255),
       period  VARCHAR (255),
+      categoryOptionCombo VARCHAR (255),
       last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'ist')
    )`).catch(e => {
       console.log("CREATE DHIS AGGREGATE TABLE ERROR", e)
@@ -322,18 +323,20 @@ async function updateDHISSyncStatus(entryId) {
   }
 }
 
-async function updateValues(element, period) {
-  const exists = await columnExists(element, period);
+async function updateValues(element,categoryOptionCombo, period) {
+  const exists = await columnExists(element,categoryOptionCombo, period);
   if (exists) {
     await pool.query(`UPDATE public.dhis_aggregate SET value=value+1,last_update = now() at time zone 'ist' 
-      where element='${element}' and period='${period}'`);
+      where element='${element}' and categoryOptionCombo='${categoryOptionCombo}' and period='${period}'`);
   } else {
-    await pool.query(`INSERT INTO public.dhis_aggregate(element,period,value) VALUES('${element}','${period}',1)`);
+    await pool.query(`INSERT INTO public.dhis_aggregate(element,categoryOptionCombo,period,value)
+     VALUES('${element}','${categoryOptionCombo}','${period}',1)`);
   }
 }
 
-async function columnExists(element, period) {
-  return await pool.query(`select exists(select 1 from public.dhis_aggregate where element='${element}' and period='${period}') AS "exists"`)
+async function columnExists(element,categoryOptionCombo, period) {
+  return await pool.query(`select exists(select 1 from public.dhis_aggregate where element='${element}'
+  and categoryOptionCombo='${categoryOptionCombo}' and period='${period}') AS "exists"`)
     .then(res => {
       if (res && res.rows && Array.isArray(res.rows) && res.rows.length > 0) {
         var jsonString = JSON.stringify(res.rows[0]);
