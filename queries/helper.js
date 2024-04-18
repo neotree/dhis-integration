@@ -2,7 +2,7 @@
 const { Pool } = require('pg');
 const config = require("../config/dev");
 const getReportingPeriod = require("../helper/utils").getReportingPeriod
-const mapper = require('../queries/mapper')
+const mapper = require('./mapper')
 const fetch = require("cross-fetch");
 const connectionString = `postgresql://${config.DB_USER}:${config.DB_PW}@${config.DB_HOST}:${config.DB_PORT}/${config.DB}`;
 
@@ -34,7 +34,7 @@ async function getUnsyncedData() {
 
 async function getDHISSyncData() {
 
-  return await pool.query(`SELECT value,element,period FROM public.dhis_aggregate`)
+  return await pool.query(`SELECT value,element,period,categoryOptionCombo FROM public.dhis_aggregate`)
     .then(res => {
       if (res && res.rows) {
         var jsonString = JSON.stringify(res.rows);
@@ -171,7 +171,7 @@ async function aggregateComplicationsManagement(entry, period, isAdmission) {
 async function aggregateNewBornSurvival(entry, period, isMaternity) {
   if (entry && entry.data && entry.data.entries) {
     if (isMaternity) {
-      const outcome = e.data.entries['NeoTreeOutcome']?.values.value[0];
+      const outcome = entry.data.entries['NeoTreeOutcome']?.values.value[0];
       if (outcome == 'SBF') {
         await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_STILL_FRESH, period);
       } else if (outcome == 'SBM') {
@@ -278,6 +278,14 @@ async function aggregateAllData() {
     }
   }
 }
+async function getValueFromKey(entry,key,isMulti){
+  if(isMulti){
+    return entry?.data?.entries[`${key}`]?.values?.value
+  }
+  else{
+    return entry?.data?.entries[`${key}`]?.values?.value[0]
+  }
+}
 async function updateDhisSyncDB(){
   //CREATE SYNC TABLE
   await pool.query(`CREATE TABLE IF NOT EXISTS public.dhis_sync (
@@ -323,14 +331,14 @@ async function updateDHISSyncStatus(entryId) {
   }
 }
 
-async function updateValues(element,categoryOptionCombo, period) {
-  const exists = await columnExists(element,categoryOptionCombo, period);
+async function updateValues(mapper, period) {
+  const exists = await columnExists(mapper['element'],mapper['categoryOptionCombo'], period);
   if (exists) {
     await pool.query(`UPDATE public.dhis_aggregate SET value=value+1,last_update = now() at time zone 'ist' 
-      where element='${element}' and categoryOptionCombo='${categoryOptionCombo}' and period='${period}'`);
+      where element='${mapper['element']}' and categoryOptionCombo='${mapper['categoryOptionCombo']}' and period='${period}'`);
   } else {
     await pool.query(`INSERT INTO public.dhis_aggregate(element,categoryOptionCombo,period,value)
-     VALUES('${element}','${categoryOptionCombo}','${period}',1)`);
+     VALUES('${mapper['element']}','${mapper['categoryOptionCombo']}','${period}',1)`);
   }
 }
 
@@ -365,6 +373,7 @@ async function syncToDhis() {
           dataElement: d.element,
           value: d.value,
           orgUnit: orgUnit,
+          categoryOptionCombo: d.categoryOptionCombo
         }],
       };
       let reqOpts = {};
@@ -400,6 +409,7 @@ async function syncToDhis() {
             dataElement: 'zANGFtNoUEt',
             value: 3,
             orgUnit: orgUnit,
+            categoryOptionCombo:"Tt7fU5lUhAU"
           }],
         };
         let reqOpts = {};
@@ -422,5 +432,5 @@ async function syncToDhis() {
     
 
   module.exports = {
-    aggregateAllData, syncToDhis,syncTest
+    aggregateAllData, syncToDhis,syncTest,updateValues,getValueFromKey
   }
