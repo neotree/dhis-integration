@@ -4,7 +4,7 @@ const helper = require("./helper")
 //AGGREGATE ART SECTION
 async function aggregateArt(entry,period){
 
-    const HAART = helper.getValueFromKey(entry,'HAART',false)
+    const HAART = helper.getValueFromKey(entry,'HAART',false,false)
 
     if(HAART==="N"){
         helper.updateValues(mapper.RHD_MAT_ART_MOTHER_NOT_ON_ART,period)

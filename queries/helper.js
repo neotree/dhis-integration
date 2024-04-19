@@ -53,6 +53,37 @@ async function getDHISSyncData() {
     })
 }
 
+
+async function getMatched(uid) {
+
+  return await pool.query(`SELECT data FROM public.sessions where uid='${uid}'`)
+    .then(res => {
+      if (res && res.rows) {
+        var jsonString = JSON.stringify(res.rows);
+        var jsonObj = JSON.parse(jsonString);
+        return jsonObj;
+      } else {
+        return []
+      }
+    })
+    .catch(err => {
+      if (String(err).includes("does not exist")) {
+        return []
+      } else {
+        throw new Error(err)
+      }
+    })
+}
+
+async function getMatchedAdmission(uid){
+  const matchedAdmission = await getMatched(uid);
+  if(matchedAdmission && Array.isArray(matchedAdmission) && matchedAdmission.length>0){
+  return matchedAdmission;
+  }
+  return null;
+}
+
+
 async function aggregateNewBornComplications(entry, period) {
 
   if (entry && entry.data && entry.data.entries) {
@@ -278,13 +309,20 @@ async function aggregateAllData() {
     }
   }
 }
-async function getValueFromKey(entry,key,isMulti){
+function getValueFromKey(entry,key,isMulti,isDiagnoses){
   if(isMulti){
     return entry?.data?.entries[`${key}`]?.values?.value
   }
   else{
+    if(isDiagnoses){
+    return entry?.data?.entries[`${key}`]
+    }
+    else
     return entry?.data?.entries[`${key}`]?.values?.value[0]
   }
+}
+function getUid(entry){
+    return entry?.data?.["uid"]
 }
 async function updateDhisSyncDB(){
   //CREATE SYNC TABLE
@@ -432,5 +470,5 @@ async function syncToDhis() {
     
 
   module.exports = {
-    aggregateAllData, syncToDhis,syncTest,updateValues,getValueFromKey
+    aggregateAllData, syncToDhis,syncTest,updateValues,getValueFromKey,getMatched,getUid,getMatchedAdmission
   }

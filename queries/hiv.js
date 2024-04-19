@@ -4,9 +4,9 @@ const helper = require("./helper")
 //AGGREGATE HIV SECTION
 async function aggregateHiv(entry,period){
 
-    const TestThisPreg = helper.getValueFromKey(entry,'TestThisPreg',false)
-    const HIVTestResults =  helper.getValueFromKey(entry,'HIVTestResults',false)
-    const MatHIVtest =   helper.getValueFromKey(entry,'MatHIVtest',false)
+    const TestThisPreg = helper.getValueFromKey(entry,'TestThisPreg',false,false)
+    const HIVTestResults =  helper.getValueFromKey(entry,'HIVTestResults',false,false)
+    const MatHIVtest =   helper.getValueFromKey(entry,'MatHIVtest',false,false)
 
     if(TestThisPreg==="AD" && HIVTestResults==="NR"){
         helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NEW_NAGATIVE,period)

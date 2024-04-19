@@ -4,7 +4,7 @@ const helper = require("./helper")
 //AGGREGATE EMERGENCY OBSTETRICS SECTION
 async function aggregateEmergencyObstetric(entry,period){
 
-    const MATCARE = helper.getValueFromKey(entry,'MATCARE',false)
+    const MATCARE = helper.getValueFromKey(entry,'MATCARE',false,false)
 
     if(MATCARE==="AntCort"){
         helper.updateValues(mapper.RHD_MAT_EMERGENCE_OBSTETRIC_CARE_ANTENATAL,period)

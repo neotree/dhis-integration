@@ -4,7 +4,7 @@ const helper = require("./helper")
 //AGGREGATE OBSTETRIC COMPLICATIONS SECTION
 async function aggregateObstetricComplications(entry,period){
 
-    const PregConditions = helper.getValueFromKey(entry,'PregConditions',false)
+    const PregConditions = helper.getValueFromKey(entry,'PregConditions',false,false)
 
     if(PregConditions==="APH"){
         helper.updateValues(mapper.RHD_MAT_OBSTETRIC_COMPLICATIONS_ANTI_PARTUM_HEAM,period)

@@ -3,9 +3,9 @@ const helper = require("./helper")
 
 async function aggregateDeliveryInMaternity(entry,period){
 
-    const ModeDelivery = helper.getValueFromKey(entry,'ModeDelivery',false)
+    const ModeDelivery = helper.getValueFromKey(entry,'ModeDelivery',false,false)
 
-    const NeoTreeOutcome = helper.getValueFromKey(entry,'NeoTreeOutcome',false)
+    const NeoTreeOutcome = helper.getValueFromKey(entry,'NeoTreeOutcome',false,false)
 
     if(ModeDelivery==="6"){
         helper.updateValues(mapper.RHD_MAT_DELIVERY_MODE_BREECH,period)
