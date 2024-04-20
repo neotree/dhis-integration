@@ -8,7 +8,7 @@ async function aggregateNewBornComplicationsInAdmission(entry,period){
     
     if(Diagnoses && Diagnoses.length>0){
     if(Diagnoses.find(d=>d["Birth Asphyxia"]) && InOrOut!==false){
-        helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_ASPHYXIA,period)
+        helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_ASPHYXIA,period,1)
     }
     if(Diagnoses){
      if(InOrOut!==false){   
@@ -17,7 +17,7 @@ async function aggregateNewBornComplicationsInAdmission(entry,period){
      || Diagnoses.find(d=>d['Extremely Premature (<28 weeks)'])
      || Diagnoses.find(d=>d['Prematurity with RD'])
      ){
-        helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_PREMATURITY,period) 
+        helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_PREMATURITY,period,1) 
      }   
     const filtered = Diagnoses.filter(d => (!d['Birth Asphyxia'])
     && !d['Premature (32-36 weeks)'] 
@@ -26,7 +26,7 @@ async function aggregateNewBornComplicationsInAdmission(entry,period){
     && !d['Prematurity with RD'])
 
     if(filtered.length>0){
-        helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_OTHER,period) 
+        helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_OTHER,period,1) 
     }
 
      }

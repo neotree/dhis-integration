@@ -94,7 +94,7 @@ module.exports = {
     RHD_MAT_ROUTINE_CARE_ITN_GIVEN: { element: "NNFGzJD43R9", categoryOptionCombo: "Tt7fU5lUhAU" },
     RHD_MAT_ROUTINE_CARE_VITK_GIVEN: { element: "zAcW94iEdXU", categoryOptionCombo: "Tt7fU5lUhAU" },
     //STAFF
-    RHD_MAT_STAFF_CONDUCTING_DELIVERY: { element: "R9CHUW81m9o", categoryOptionCombo: "Tt7fU5lUhAU" },
+    RHD_MAT_STAFF_CONDUCTING_DELIVERY_MO_CO_MA_NURSE_MW: { element: "R9CHUW81m9o", categoryOptionCombo: "Tt7fU5lUhAU" },
     RHD_MAT_STAFF_CONDUCTING_DELIVERY_OTHER: { element: "tNiIEkS6V9C", categoryOptionCombo: "Tt7fU5lUhAU" },
     RHD_MAT_STAFF_CONDUCTING_DELIVERY_PA_WA_HSA: { element: "mHcrkMgxARq", categoryOptionCombo: "Tt7fU5lUhAU" },
     //TEO

@@ -369,14 +369,14 @@ async function updateDHISSyncStatus(entryId) {
   }
 }
 
-async function updateValues(mapper, period) {
+async function updateValues(mapper, period,value) {
   const exists = await columnExists(mapper['element'],mapper['categoryOptionCombo'], period);
   if (exists) {
-    await pool.query(`UPDATE public.dhis_aggregate SET value=value+1,last_update = now() at time zone 'ist' 
+    await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'ist' 
       where element='${mapper['element']}' and categoryOptionCombo='${mapper['categoryOptionCombo']}' and period='${period}'`);
   } else {
     await pool.query(`INSERT INTO public.dhis_aggregate(element,categoryOptionCombo,period,value)
-     VALUES('${mapper['element']}','${mapper['categoryOptionCombo']}','${period}',1)`);
+     VALUES('${mapper['element']}','${mapper['categoryOptionCombo']}','${period}',${value})`);
   }
 }
 

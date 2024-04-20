@@ -9,21 +9,21 @@ async function aggregateHiv(entry,period){
     const MatHIVtest =   helper.getValueFromKey(entry,'MatHIVtest',false,false)
 
     if(TestThisPreg==="AD" && HIVTestResults==="NR"){
-        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NEW_NAGATIVE,period)
+        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NEW_NAGATIVE,period,1)
     }
     if(TestThisPreg==="AD" && HIVTestResults==="R") {
-        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NEW_POSITIVE,period) 
+        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NEW_POSITIVE,period,1) 
     }
     if(MatHIVtest==='N'){
-        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NOT_DONE,period) 
+        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NOT_DONE,period,1) 
     }
 
     if((TestThisPreg==='AD' || TestThisPreg==='BP') &&HIVTestResults==='NR'){
-        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_NAGATIVE,period) 
+        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_NAGATIVE,period,1) 
     }
 
     if((TestThisPreg==='AD' || TestThisPreg==='BP') &&HIVTestResults==='R'){
-        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_POSITIVE,period) 
+        helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_POSITIVE,period,1) 
     }
     
 }
