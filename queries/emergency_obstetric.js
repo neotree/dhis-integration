@@ -32,3 +32,6 @@ async function aggregateEmergencyObstetric(entry,period){
     }
     
 }
+module.exports = {
+    aggregateEmergencyObstetric
+  }

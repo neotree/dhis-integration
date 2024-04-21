@@ -18,5 +18,10 @@ async function aggregateTEOAdmission(entry, period) {
 
 }
 
+module.exports = {
+    aggregateTEOAdmission
+  }
+
+
 
 

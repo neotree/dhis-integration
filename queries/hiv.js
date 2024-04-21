@@ -27,3 +27,7 @@ async function aggregateHiv(entry,period){
     }
     
 }
+
+module.exports = {
+    aggregateHiv
+  }

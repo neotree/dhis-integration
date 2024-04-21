@@ -7,12 +7,14 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
 
     if (uid) {
         const matchedAdmission = await helper.getMatchedAdmission(uid)
-
-      ADD PERIOD
         if (matchedAdmission) {
              //FOR THIS ONE CONSIDER CREATING PERIOD HERE
             const InOrOut = helper.getValueFromKey(matchedAdmission, 'InOrOut', false, false)
-            if (InOrOut === true) {
+            const DateTimeAdmission = helper.getValueFromKey(matchedAdmission, 'DateTimeAdmission', false, false) 
+
+            if (InOrOut === true && DateTimeAdmission) {
+                const period = getReportingPeriod(admissionDate)
+                if(period!=null){
                 const MedsGiven = Array.from(helper.getValueFromKey(entry, "MedsGiven", true, false))
 
                 if (MedsGiven
@@ -63,11 +65,15 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                     helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_RESC, period, Resus.filter(r=>r!="None" && r!="Unk").length)
                 }
             }
+            }
 
         }
 
     }
 }
+module.exports = {
+    aggregateNewBornComplicationsMngtDischarge
+  }
 
 
 

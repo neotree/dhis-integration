@@ -10,3 +10,7 @@ async function aggregateBreastFeeding(entry,period){
     }
 
 }
+
+module.exports = {
+    aggregateBreastFeeding
+  }

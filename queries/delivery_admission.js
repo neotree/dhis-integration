@@ -18,3 +18,6 @@ async function aggregateDeliveryInAdmission(entry,period){
     }
 
 }
+module.exports = {
+    aggregateDeliveryInAdmission
+  }

@@ -23,3 +23,7 @@ async function aggregateArt(entry,period){
     }
    
 }
+
+module.exports = {
+    aggregateArt
+  }

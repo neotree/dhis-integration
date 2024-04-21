@@ -2,8 +2,29 @@
 const { Pool } = require('pg');
 const config = require("../config/dev");
 const getReportingPeriod = require("../helper/utils").getReportingPeriod
-const mapper = require('./mapper')
 const fetch = require("cross-fetch");
+const aggregateArt = require("./art").aggregateArt
+const aggregateBreastFeeding = require("./breast_feeding").aggregateBreastFeeding
+const aggregateDeliveryInAdmission = require("./delivery_admission").aggregateDeliveryInAdmission
+const aggregateDeliveryInMaternity = require("./delivery_maternity").aggregateDeliveryInMaternity
+const aggregateEmergencyObstetric = require("./emergency_obstetric").aggregateEmergencyObstetric
+const aggregateHiv = require("./hiv").aggregateHiv
+const aggregateMaternalOutcome = require("./mat_outcome").aggregateMaternalOutcome
+const aggregateNewBornComplicationsInAdmission = require("./newborn_complications_admissions").aggregateNewBornComplicationsInAdmission
+const aggregateNewBornComplicationsInMaternity = require("./newborn_complications_maternity").aggregateNewBornComplicationsInMaternity
+const aggregateNewBornComplicationsMngtDischarge = require("./newborn_complications_mngt_discharge").aggregateNewBornComplicationsMngtDischarge
+const aggregateObstetricComplications = require("./obs_complications").aggregateObstetricComplications
+const aggregatePMTCTDischarge = require("./pmtct_discharge").aggregatePMTCTDischarge
+const aggregatePMTCTMaternity = require("./pmtct_maternity").aggregatePMTCTMaternity
+const aggregateRoutineCareAdmission = require("./pmtct_routine_care_admission").aggregateRoutineCareAdmission
+const aggregateRoutineCareMaternity = require("./pmtct_routine_care_maternity").aggregateRoutineCareMaternity
+const aggregateTEOAdmission = require("./pmtct_teo_admission").aggregateTEOAdmission
+const aggregateTEOMaternity = require("./pmtct_teo_maternity").aggregateTEOMaternity
+const aggregateReferrals = require("./referral").aggregateReferrals
+const aggregateSingleTwinsTriplets = require("./single_twins_triplets").aggregateSingleTwinsTriplets
+const aggregateStaffMaternity = require("./staff").aggregateStaffMaternity
+const aggregateVitA = require("./vitamin_a").aggregateVitA
+
 const connectionString = `postgresql://${config.DB_USER}:${config.DB_PW}@${config.DB_HOST}:${config.DB_PORT}/${config.DB}`;
 
 
@@ -75,194 +96,12 @@ async function getMatched(uid) {
     })
 }
 
-async function getMatchedAdmission(uid){
+async function getMatchedAdmission(uid) {
   const matchedAdmission = await getMatched(uid);
-  if(matchedAdmission && Array.isArray(matchedAdmission) && matchedAdmission.length>0){
-  return matchedAdmission;
+  if (matchedAdmission && Array.isArray(matchedAdmission) && matchedAdmission.length > 0) {
+    return matchedAdmission;
   }
   return null;
-}
-
-
-async function aggregateNewBornComplications(entry, period) {
-
-  if (entry && entry.data && entry.data.entries) {
-    //ASPHYXIA
-    if (entry.data.entries.hasOwnProperty('Birth Asphyxia')) {
-      await updateValues(mapper.NEWBORN_COMPLICATIONS_ASPHYXIA, period);
-    } else {
-      const apgar5 = entry.data.entries['Apgar5']?.values.value[0]
-      if (apgar5 && apgar5 < 7) {
-        await updateValues(mapper.NEWBORN_COMPLICATIONS_ASPHYXIA, period);
-      }
-    }
-
-    //OTHER 
-    const diagnoses = entry.data['diagnoses'] || []
-    if (Array.isArray(diagnoses) && diagnoses.length > 0) {
-      let filtered = diagnoses.filter(d => (!d['Birth Asphyxia']
-        && !d['Neonatal Sepsis'] &&
-        !d['Neonatal Sepsis (Early onset - Asymptomatic)']
-        && !d['Neonatal Sepsis (Early onset - Symptomatic)']
-        && !d['Neonatal Sepsis (Late onset - Asymptomatic)']
-        && !d['Low Birth Weight (1500-2499g)']
-        && !d['Very Low Birth Weight (1000-1499g)']
-        && !d['Extremely low birth weight (<1000g)']
-        && !d['Extremely Low Birth Weight (<1000g)']
-        && !d['Premature (32-36 weeks)']
-        && !d['Very Premature (28-31 weeks)']
-        && !d['Extremely Premature (<28 weeks)']
-        && !d['Prematurity with RD']
-      ));
-
-      if (filtered.length > 0) {
-        await updateValues(mapper.NEWBORN_COMPLICATIONS_OTHER, period);
-      }
-    } else {
-      // NONE
-      await updateValues(mapper.NEWBORN_COMPLICATIONS_NONE, period);
-    }
-
-    // PREMATURITY
-    if (entry.data.entries.hasOwnProperty('Premature (32-36 weeks)') || entry.data.entries.hasOwnProperty('Very Premature (28-31 weeks)')
-      || entry.data.entries.hasOwnProperty('Extremely Premature (<28 weeks)') ||
-      entry.data.entries.hasOwnProperty('Prematurity with RD')) {
-      await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);
-    } else {
-      // PREMATURITY BY GESTATION
-      const gestation = entry.data.entries['Gestation']?.values.value[0]
-      if (gestation && gestation < 37) {
-        await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);
-      } else {
-        // PREMATURITY BY BIRTH WEIGHT
-        const birthWeight = entry.data.entries['BirthWeight']?.values.value[0]
-        if (birthWeight && birthWeight < 2500) {
-          await updateValues(mapper.NEWBORN_COMPLICATIONS_PREMATURITY, period);
-          // LOW BIRTH WEIGHT
-          await updateValues(mapper.NEWBORN_COMPLICATIONS_LBW, period);
-        }
-
-      }
-
-    }
-    // SEPSIS
-    if (entry.data.entries?.hasOwnProperty('Neonatal Sepsis')
-      || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Early onset - Asymptomatic)')
-      || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Early onset - Symptomatic)')
-      || entry.data.entries?.hasOwnProperty('Neonatal Sepsis (Late onset - Asymptomatic)')) {
-      await updateValues(mapper.NEWBORN_COMPLICATIONS_SEPSIS, period);
-    } else {
-      // SEPSIS BY RISK FACTORS
-      const riskFactors = entry.data.entries['RFSepsis']?.values.value
-      if (riskFactors && Array.isArray(riskFactors) && !riskFactors.includes('NONE')) {
-        await updateValues(mapper.NEWBORN_COMPLICATIONS_SEPSIS, period);
-      }
-    }
-  }
-}
-
-async function aggregateComplicationsManagement(entry, period, isAdmission) {
-
-  if (entry && entry.data && entry.data.entries) {
-
-    if (isAdmission) {
-      const plan = entry.data.entries['Plan']?.values.value || []
-      if (plan && Array.isArray(plan) && plan.length > 0) {
-        //KANGAROO
-        if (plan.includes('KMC')) {
-          await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_KMC, period);
-        }
-
-        // OTHER
-        const filteredPlan = plan.filter(p => !String(p) == 'KMC' && !String(p) == 'Res')
-        if (filteredPlan.length > 0) {
-          await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_OTHER, period);
-        }
-
-      }
-    } else {
-      const meds = entry.data.entries['MedsGiven']?.values.value || []
-      if (meds && Array.isArray(meds) && meds.length > 0) {
-        const filteredMeds = meds.filter(m => String(m) == 'BP' || String(m) == 'GENT' || String(m) == 'CEF'
-          || String(m) == 'AMOX' || String(m) == 'FLU' || String(m) == 'IMI' || String(m) == 'MET' || String(m) == 'Mero')
-        if (filteredMeds.length > 0) {
-          await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_ANTIBIOTICS, period);
-        }
-      }
-      //RESUSCITATION
-      const resus = entry.data.entries['Resus']?.values.value || []
-      if (resus.length > 0 && Array.isArray(resus) && !resus.includes('NONE')) {
-        await updateValues(mapper.NEWBORN_COMPLICATIONS_MNGT_RESC, period);
-      }
-    }
-  }
-}
-
-
-async function aggregateNewBornSurvival(entry, period, isMaternity) {
-  if (entry && entry.data && entry.data.entries) {
-    if (isMaternity) {
-      const outcome = entry.data.entries['NeoTreeOutcome']?.values.value[0];
-      if (outcome == 'SBF') {
-        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_STILL_FRESH, period);
-      } else if (outcome == 'SBM') {
-        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_STILLBIRTH_MASCERATED, period);
-      }
-
-    } else {
-      //IN DISCHARGE SCRIPT
-      const outcome = e.data.entries['NeoTreeOutcome']?.values.value[0];
-      const hivExposure = e.data.entries['HIVtestResultDC']?.values.value[0];
-      const nvpGiven = e.data.entries['NVPgiven']?.values.value[0];
-      if (outcome == 'BID' || outcome == 'NND>24' || outcome == 'NND<24') {
-        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_NEONATAL_DEATH, period);
-      }
-      if (hivExposure == 'R' && nvpGiven == 'N') {
-        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NO_NVP, period);
-      } else if (hivExposure == 'R' && nvpGiven == 'Y') {
-        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NVP_STARTED, period);
-      } else if (hivExposure == 'UNK') {
-        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_UNKOWN_EXP, period);
-      } else if (hivExposure == 'NR') {
-        await updateValues(mapper.NEWBORN_SURVIVAL_PMTCT_ALIVE_NOT_HIV_EXP, period);
-      }
-
-    }
-
-  }
-}
-
-
-async function aggregateBreastFeedingInitiated(entry, period) {
-  if (entry && entry.data && entry.data.entries) {
-    const feeds = entry.data.entries['FeedsAdm']?.values.value || []
-    if (feeds && Array.isArray(feeds) && feeds.length > 0) {
-      if (feeds.includes('BF')) {
-        await updateValues(mapper.BREAST_FEEDING_INITIATED, period);
-      }
-    }
-  }
-}
-
-async function aggregateRoutineCare(entry, period) {
-  if (entry && entry.data && entry.data.entries) {
-    const meds = entry.data.entries['MedsGiven']?.values.value || []
-    const vitK = entry.data.entries['VitK']?.values.value[0]
-    const chlx = entry.data.entries['Chlor']?.values.value[0]
-    if (meds && Array.isArray(meds) && meds.length > 0) {
-      // Chlorohexidine
-      if ((chlx && chlx == 'Y') || meds.includes('CHLX')) {
-        await updateValues(mapper.ROUTINE_CARE_CHLOROHEXIDINE_GIVEN, period);
-      }
-      //Vitamin K
-      if ((vitK && vitK == 'Y') || meds.includes('VitK')) {
-        await updateValues(mapper.ROUTINE_CARE_VITK_GIVEN, period);
-      }
-
-    }
-
-  }
-
 }
 
 async function aggregateAllData() {
@@ -271,60 +110,65 @@ async function aggregateAllData() {
   const data = await getUnsyncedData();
   if (Array.isArray(data) && data.length > 0) {
     for (e of data) {
-      if (e.scriptid =='-KO1TK4zMvLhxTw6eKia') {
-        const admissionDate = e.data.entries['DateTimeAdmission']?.values.value[0];
+      if (e.scriptid === config.ADMISSIONS || e.scriptid === config.MATERNALS) {
+        const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
         if (admissionDate) {
           const period = getReportingPeriod(admissionDate)
           if (period != null) {
-            await aggregateNewBornComplications(e, period);
-            await aggregateComplicationsManagement(e, period, true);
-          }
-        }
-      } else if (e.scriptid =='-KYDiO2BTM4kSGZDVXAO') {
-        const dischargeDate = e.data.entries['DateTimeDischarge']?.values.value[0] || e.data.entries['DateTimeDeath']?.values.value[0];
-        if (dischargeDate) {
-          const period = getReportingPeriod(dischargeDate)
-          if (period != null) {
-            await aggregateComplicationsManagement(e, period, false);
-            await aggregateNewBornSurvival(e, period, false);
-            await aggregateBreastFeedingInitiated(e, period)
-            await aggregateRoutineCare(e, period);
-          }
-        }
-      } else if (e.scriptid =='-MeiOtRPbZKqsr4A9DoA') {
-        const admissionDate = e.data.entries['DateAdmission']?.values.value[0];
-        if (admissionDate) {
-          const period = getReportingPeriod(admissionDate)
-          if (period) {
-            await aggregateNewBornSurvival(e, period, true);
-          }
+            if (e.scriptid === config.ADMISSIONS) {
+              await aggregateDeliveryInAdmission(e, period)
+              await aggregateNewBornComplicationsInAdmission(e, period)
+              await aggregateRoutineCareAdmission(e, period)
+              await aggregateTEOAdmission(e, period)
 
-        }
+            } else {
+              await aggregateArt(e, period);
+              await aggregateBreastFeeding(e, period);
+              await aggregateDeliveryInMaternity(e, period);
+              await aggregateEmergencyObstetric(e, period);
+              await aggregateHiv(e, period)
+              await aggregateMaternalOutcome(e, period)
+              await aggregateNewBornComplicationsInMaternity(e, period)
+              await aggregateObstetricComplications(e, period)
+              await aggregatePMTCTMaternity(e, period)
+              await aggregateRoutineCareMaternity(e, period)
+              await aggregateTEOMaternity(e, period)
+              await aggregateReferrals(e, period)
+              await aggregateSingleTwinsTriplets(e, period)
+              await aggregateStaffMaternity(e, period)
+              await aggregateVitA(e, period)
 
-      } else {
-    
+            }
+
+          }
+        }
+      } else if (e.scriptid === config.DISCHARGE) {
+
+        await aggregateNewBornComplicationsMngtDischarge(e)
+        await aggregatePMTCTDischarge(e)
+
+
       }
-      //UPDATE dhis_sync STATUS HERE
-     await updateDHISSyncStatus(e.id)
+      await updateDHISSyncStatus(e.id)
     }
   }
 }
-function getValueFromKey(entry,key,isMulti,isDiagnoses){
-  if(isMulti){
+function getValueFromKey(entry, key, isMulti, isDiagnoses) {
+  if (isMulti) {
     return entry?.data?.entries[`${key}`]?.values?.value
   }
-  else{
-    if(isDiagnoses){
-    return entry?.data?.entries[`${key}`]
+  else {
+    if (isDiagnoses) {
+      return entry?.data?.entries[`${key}`]
     }
     else
-    return entry?.data?.entries[`${key}`]?.values?.value[0]
+      return entry?.data?.entries[`${key}`]?.values?.value[0]
   }
 }
-function getUid(entry){
-    return entry?.data?.["uid"]
+function getUid(entry) {
+  return entry?.data?.["uid"]
 }
-async function updateDhisSyncDB(){
+async function updateDhisSyncDB() {
   //CREATE SYNC TABLE
   await pool.query(`CREATE TABLE IF NOT EXISTS public.dhis_sync (
       id serial PRIMARY KEY,
@@ -350,7 +194,7 @@ async function updateDhisSyncDB(){
   const scripts = [config.ADMISSIONS, config.DISCHARGE, config.MATERNALS];
   let sync_start_date = config.START_DATE
   // DEDUPLICATE AND SYNC DATA
-  for (s of scripts){
+  for (s of scripts) {
     let query = `
       INSERT INTO public.dhis_sync 
       SELECT DISTINCT ON (uid,scriptid) id,data::jsonb,uid,scriptid,ingested_at
@@ -369,8 +213,8 @@ async function updateDHISSyncStatus(entryId) {
   }
 }
 
-async function updateValues(mapper, period,value) {
-  const exists = await columnExists(mapper['element'],mapper['categoryOptionCombo'], period);
+async function updateValues(mapper, period, value) {
+  const exists = await columnExists(mapper['element'], mapper['categoryOptionCombo'], period);
   if (exists) {
     await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'ist' 
       where element='${mapper['element']}' and categoryOptionCombo='${mapper['categoryOptionCombo']}' and period='${period}'`);
@@ -380,7 +224,7 @@ async function updateValues(mapper, period,value) {
   }
 }
 
-async function columnExists(element,categoryOptionCombo, period) {
+async function columnExists(element, categoryOptionCombo, period) {
   return await pool.query(`select exists(select 1 from public.dhis_aggregate where element='${element}'
   and categoryOptionCombo='${categoryOptionCombo}' and period='${period}') AS "exists"`)
     .then(res => {
@@ -425,50 +269,16 @@ async function syncToDhis() {
       })
         .then((res) => res.json())
         .then((res) => {
-          console.log("res===",res)
+          console.log("res===", res)
         })
         .catch((err) => {
-          console.log("err===",err)
+          console.log("err===", err)
         });
 
     }
   }
-  }
-  async function syncTest() {
-    //GET ALL THE DATA
-    const orgUnit = config.DHIS_ORGUNIT
-    const dataSet = config.DHIS_DATASET
-      const url = `${config.DHIS_HOST_TEST}/api/dataValueSets`;
-      var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
-        let body = {
-          dataSet: dataSet,
-          period: '202303',
-          dataValues: [{
-            dataElement: 'zANGFtNoUEt',
-            value: 3,
-            orgUnit: orgUnit,
-            categoryOptionCombo:"Tt7fU5lUhAU"
-          }],
-        };
-        let reqOpts = {};
-        reqOpts.headers = { Authorization: auth };
-        reqOpts.headers["Content-Type"] = "application/json";
-        reqOpts.body = JSON.stringify({ ...body });
-  
-        fetch(url, {
-          method: "POST",
-          ...reqOpts,
-        })
-          .then((res) => {
-            console.log("res===",res)
-          })
-          .catch((err) => {
-            console.log("err===",err)
-          });
-  
-      }
-    
+}
 
-  module.exports = {
-    aggregateAllData, syncToDhis,syncTest,updateValues,getValueFromKey,getMatched,getUid,getMatchedAdmission
-  }
+module.exports = {
+  aggregateAllData, syncToDhis, updateValues, getValueFromKey, getMatched, getUid, getMatchedAdmission
+}

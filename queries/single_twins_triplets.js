@@ -18,3 +18,8 @@ async function aggregateSingleTwinsTriplets(entry,period){
     }
     
 }
+
+
+module.exports = {
+    aggregateSingleTwinsTriplets
+  }

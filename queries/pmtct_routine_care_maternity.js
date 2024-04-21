@@ -26,5 +26,9 @@ async function aggregateRoutineCareMaternity(entry, period) {
     
 }
 
+module.exports = {
+    aggregateRoutineCareMaternity
+  }
+
 
 

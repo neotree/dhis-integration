@@ -11,3 +11,8 @@ async function aggregateReferrals(entry,period){
     }
     
 }
+
+
+module.exports = {
+    aggregateReferrals
+  }

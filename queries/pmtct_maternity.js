@@ -40,9 +40,11 @@ async function aggregatePMTCTMaternity(entry, period) {
         helper.updateValues(mapper.RHD_MAT_NEWBORN_SURVIVAL_PMTCT_ALIVE_STILL_FRESH, period, 1)
     }
 
-
-
 }
+
+module.exports = {
+    aggregatePMTCTMaternity
+  }
 
 
 

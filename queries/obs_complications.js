@@ -41,3 +41,7 @@ async function aggregateObstetricComplications(entry,period){
     }
    
 }
+
+module.exports = {
+    aggregateObstetricComplications
+  }

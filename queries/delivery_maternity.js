@@ -24,3 +24,7 @@ async function aggregateDeliveryInMaternity(entry,period){
     }
       
 }
+
+module.exports = {
+    aggregateDeliveryInMaternity
+  }
