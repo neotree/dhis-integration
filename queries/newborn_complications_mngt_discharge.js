@@ -1,5 +1,5 @@
 const mapper = require('./mapper')
-const helper = require("./helper")
+const helper = require("./query_helper")
 
 async function aggregateNewBornComplicationsMngtDischarge(entry) {
 
@@ -8,7 +8,6 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
     if (uid) {
         const matchedAdmission = await helper.getMatchedAdmission(uid)
         if (matchedAdmission) {
-             //FOR THIS ONE CONSIDER CREATING PERIOD HERE
             const InOrOut = helper.getValueFromKey(matchedAdmission, 'InOrOut', false, false)
             const DateTimeAdmission = helper.getValueFromKey(matchedAdmission, 'DateTimeAdmission', false, false) 
 
@@ -26,7 +25,7 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                     || MedsGiven.includes("IMI")
                     || MedsGiven.includes("MET")
                     || MedsGiven.includes("Mero")) {
-                    helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_ANTIBIOTICS, period)
+                    helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_ANTIBIOTICS, period,1)
                 }
                 const ThermCare = Array.from(helper.getValueFromKey(entry, 'ThermCare', true, false))
                 if (ThermCare && ThermCare.length > 0) {
@@ -41,7 +40,7 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                 }
                 const RESPSUP = Array.from(helper.getValueFromKey(entry, 'RESPSUP', true, false))
                 if (RESPSUP && RESPSUP.length > 0) {
-                    otherCount = otherCount + RESPSUP.filter(f => f === "None").length
+                    otherCount = otherCount + RESPSUP.filter(f => String(f).toLowerCase === "none").length
                 }
                 const PHOTOTHERAPY = helper.getValueFromKey(entry, 'PHOTOTHERAPY', false, false)
                 if (PHOTOTHERAPY === "Yes") {
@@ -55,14 +54,14 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                 const FeedsAdm = Array.from(helper.getValueFromKey(entry, 'FeedsAdm', true, false))
 
                 if (FeedsAdm && FeedsAdm.length > 0) {
-                    otherCount = otherCount + FeedsAdm.filter(f != "None" && f != "BF").length
+                    otherCount = otherCount + FeedsAdm.filter(String(f).toLowerCase()!= "none" && f != "BF").length
                 }
                 helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_OTHER, period, otherCount)
 
                 const Resus = Array.from(helper.getValueFromKey(entry, 'Resus', true, false))
                 if(Resus && Resus.length>0) {
                 
-                    helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_RESC, period, Resus.filter(r=>r!="None" && r!="Unk").length)
+                    helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_RESC, period, Resus.filter(r=>String(r).toLowerCase()!="none" && String(r).toLowerCase()!="unk").length)
                 }
             }
             }

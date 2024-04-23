@@ -1,5 +1,5 @@
 const mapper = require('./mapper')
-const helper = require("./helper")
+const helper = require("./query_helper")
 
 //AGGREGATE VITAMIN A OBSTETRICS SECTION
 async function aggregateVitA(entry, period) {

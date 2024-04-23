@@ -1,5 +1,5 @@
 const mapper = require('./mapper')
-const helper = require("./helper")
+const helper = require("./query_helper")
 
 //AGGREGATE HIV SECTION
 async function aggregateHiv(entry,period){

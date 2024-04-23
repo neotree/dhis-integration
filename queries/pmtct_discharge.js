@@ -1,5 +1,5 @@
 const mapper = require('./mapper')
-const helper = require("./helper")
+const helper = require("./query_helper")
 const getReportingPeriod = require("../helper/utils").getReportingPeriod
 
 async function aggregatePMTCTDischarge(entry) {

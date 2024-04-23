@@ -51,20 +51,8 @@ function updateSyncDBNight() {
     }
   );
 }
-function updateSyncDBTest() {
-  cron.schedule(
-    "* * * * *",
-    async () => {
-      db.syncTest()
-    },
-    {
-      scheduled: true,
-      timezone: "Africa/Harare",
-    }
-  );
-}
 
 
 
-module.exports = { updateSyncDBMorning,updateSyncDBMidMorning,updateSyncDBAfternoon,updateSyncDBNight,updateSyncDBTest}
+module.exports = { updateSyncDBMorning,updateSyncDBMidMorning,updateSyncDBAfternoon,updateSyncDBNight}
 
