@@ -6,6 +6,9 @@ async function aggregateArt(entry,period){
 
     const HAART = helper.getValueFromKey(entry,'HAART',false,false)
 
+    console.log("---OIOI--",entry)
+    console.log("---HART--",HAART)
+
     if(HAART==="N"){
         helper.updateValues(mapper.RHD_MAT_ART_MOTHER_NOT_ON_ART,period,1)
     }

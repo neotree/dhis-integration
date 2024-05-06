@@ -1,5 +1,6 @@
 const mapper = require('./mapper')
 const helper = require("./query_helper")
+const getReportingPeriod = require("../helper/utils").getReportingPeriod
 
 async function aggregateNewBornComplicationsMngtDischarge(entry) {
 
@@ -11,8 +12,8 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
             const InOrOut = helper.getValueFromKey(matchedAdmission, 'InOrOut', false, false)
             const DateTimeAdmission = helper.getValueFromKey(matchedAdmission, 'DateTimeAdmission', false, false) 
 
-            if (InOrOut === true && DateTimeAdmission) {
-                const period = getReportingPeriod(admissionDate)
+            if (InOrOut === "Yes" && DateTimeAdmission) {
+                const period = getReportingPeriod(DateTimeAdmission)
                 if(period!=null){
                 const MedsGiven = Array.from(helper.getValueFromKey(entry, "MedsGiven", true, false))
 
@@ -34,9 +35,9 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                     }
                 }
                 let otherCount = 0;
-                const filteredThemCare = filteredThemCare ? ThermCare.filter(th => th !== "KMC") : [];
+                const filteredThemCare = ThermCare ? ThermCare.filter(th => th !== "KMC") : [];
                 if (filteredThemCare.length > 0) {
-                    otherCount = filtered.length;
+                    otherCount = filteredThemCare.length;
                 }
                 const RESPSUP = Array.from(helper.getValueFromKey(entry, 'RESPSUP', true, false))
                 if (RESPSUP && RESPSUP.length > 0) {
@@ -54,7 +55,7 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                 const FeedsAdm = Array.from(helper.getValueFromKey(entry, 'FeedsAdm', true, false))
 
                 if (FeedsAdm && FeedsAdm.length > 0) {
-                    otherCount = otherCount + FeedsAdm.filter(String(f).toLowerCase()!= "none" && f != "BF").length
+                    otherCount = otherCount + FeedsAdm.filter(f=>String(f).toLowerCase()!= "none" && f != "BF").length
                 }
                 helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_OTHER, period, otherCount)
 

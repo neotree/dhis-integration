@@ -8,12 +8,12 @@ async function aggregateNewBornComplicationsInAdmission(entry, period) {
     const BirthWeight = helper.getValueFromKey(entry, 'BirthWeight', false, false)
 
     if (Diagnoses && Diagnoses.length > 0) {
-        if (Diagnoses.find(d => d["Birth Asphyxia"]) && InOrOut !== false) {
+        if (Diagnoses.find(d => d["Birth Asphyxia"]) && InOrOut ==="Yes" ) {
             helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_ASPHYXIA, period, 1)
         }
     
         if (Diagnoses) {
-            if (InOrOut !== false) {
+            if (InOrOut ==="Yes" ) {
 
                 //PREMATURITY
                 if (Diagnoses.find(d => d['Premature (32-36 weeks)'])

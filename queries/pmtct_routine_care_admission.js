@@ -8,7 +8,7 @@ async function aggregateRoutineCareAdmission(entry, period) {
     const VitK = helper.getValueFromKey(entry, "VitK ", false, false);
     const ITN = helper.getValueFromKey(entry, "ITN ", false, false);
 
-    if (InOrOut === true) {
+    if (InOrOut === "Yes") {
         if (Chlor === "Y") {
             helper.updateValues(mapper.RHD_MAT_ROUTINE_CARE_CHLOROHEXIDINE_GIVEN, period, 1)
         }

@@ -1,11 +1,11 @@
 var cron = require("node-cron");
-const db = require("../queries/aggregate");
+const agregate = require("../queries/dhis_aggregate");
 
 function updateSyncDBMorning() {
   cron.schedule(
-    "30 06 * * *",
+    "00 06 * * *",
     async () => {
-      db.syncDhisAggregate()
+      agregate.syncDhisAggregate()
     },
     {
       scheduled: true,
@@ -18,7 +18,7 @@ function updateSyncDBMidMorning() {
   cron.schedule(
     "40 09 * * *",
     async () => {
-      db.syncDhisAggregate()
+      agregate.syncDhisAggregate()
     },
     {
       scheduled: true,

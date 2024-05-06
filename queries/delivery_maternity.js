@@ -7,10 +7,13 @@ async function aggregateDeliveryInMaternity(entry,period){
 
     const NeoTreeOutcome = helper.getValueFromKey(entry,'NeoTreeOutcome',false,false)
 
+    console.log("----MOD--",ModeDelivery)
+    console.log("----NET--",NeoTreeOutcome)
+
     if(ModeDelivery==="6"){
         helper.updateValues(mapper.RHD_MAT_DELIVERY_MODE_BREECH,period,1)
     }
-    if(ModeDelivery==="4" && ModeDelivery!=='5'){
+    if(ModeDelivery==="4" || ModeDelivery!=='5'){
         helper.updateValues(mapper.RHD_MAT_DELIVERY_MODE_CEASARIAN_SECTION,period,1)
     }
     if(ModeDelivery==="1"){

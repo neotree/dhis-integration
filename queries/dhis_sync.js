@@ -27,6 +27,7 @@ const getValueFromKey = require("./query_helper").getValueFromKey
 const updateDHISSyncStatus = require("./query_helper").updateDHISSyncStatus
 const updateDhisSyncDB = require("./query_helper").updateDhisSyncDB
 const getDHISSyncData = require("./query_helper").getDHISSyncData
+const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").aggregateRoutineCareDischarge
 
 
 async function aggregateAllData() {
@@ -35,18 +36,23 @@ async function aggregateAllData() {
     const data = await getUnsyncedData();
     if (Array.isArray(data) && data.length > 0) {
       for (e of data) {
-        if (e.scriptid === config.ADMISSIONS || e.scriptid === config.MATERNALS) {
+        if (e.scriptid === config.ADMISSIONS) {
           const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
           if (admissionDate) {
             const period = getReportingPeriod(admissionDate)
             if (period != null) {
-              if (e.scriptid === config.ADMISSIONS) {
                 await aggregateDeliveryInAdmission(e, period)
                 await aggregateNewBornComplicationsInAdmission(e, period)
                 await aggregateRoutineCareAdmission(e, period)
                 await aggregateTEOAdmission(e, period)
   
-              } else {
+              }
+             }
+            }  
+             else if(e.scriptid === config.MATERNALS) {
+              const admissionDate = getValueFromKey(e, "DateAdmission", false, false)
+              if (admissionDate) {
+                const period = getReportingPeriod(admissionDate)
                 await aggregateArt(e, period);
                 await aggregateBreastFeeding(e, period);
                 await aggregateDeliveryInMaternity(e, period);
@@ -66,12 +72,10 @@ async function aggregateAllData() {
               }
   
             }
-          }
-        } else if (e.scriptid === config.DISCHARGE) {
-  
+           else if (e.scriptid === config.DISCHARGE) {
           await aggregateNewBornComplicationsMngtDischarge(e)
           await aggregatePMTCTDischarge(e)
-  
+          await aggregateRoutineCareDischarge(e)
   
         }
         await updateDHISSyncStatus(e.id)

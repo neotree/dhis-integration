@@ -6,6 +6,8 @@ async function aggregatePMTCTDischarge(entry) {
 
     const uid = helper.getUid(entry)
 
+    console.log("--TESTING UID--",uid)
+
     if (uid) {
         const matchedAdmission = await helper.getMatchedAdmission(uid)
 
@@ -13,8 +15,8 @@ async function aggregatePMTCTDischarge(entry) {
         if (matchedAdmission) {
             const InOrOut = helper.getValueFromKey(matchedAdmission, 'InOrOut', false, false)
             const DateTimeAdmission = helper.getValueFromKey(matchedAdmission, 'DateTimeAdmission', false, false)
-            if (InOrOut === true && DateTimeAdmission) {
-                const period = getReportingPeriod(admissionDate)
+            if (InOrOut === "Yes" && DateTimeAdmission) {
+                const period = getReportingPeriod(DateTimeAdmission)
                 if (period != null) {
                     const HIVtestResultDC = helper.getValueFromKey(entry, "HIVtestResultDC", false, false);
                     const NVPgiven = helper.getValueFromKey(entry, "NVPgiven", false, false);

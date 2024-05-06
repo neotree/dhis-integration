@@ -76,7 +76,7 @@ async function getMatched(uid) {
 async function getMatchedAdmission(uid) {
   const matchedAdmission = await getMatched(uid);
   if (matchedAdmission && Array.isArray(matchedAdmission) && matchedAdmission.length > 0) {
-    return matchedAdmission;
+    return matchedAdmission[0];
   }
   return null;
 }
@@ -87,7 +87,7 @@ function getValueFromKey(entry, key, isMulti, isDiagnoses) {
   }
   else {
     if (isDiagnoses) {
-      return entry?.data?.entries[`${key}`]
+      return entry?.data[`${key}`]
     }
     else
       return entry?.data?.entries[`${key}`]?.values?.value[0]
@@ -111,7 +111,7 @@ async function updateDhisSyncDB() {
       value INT DEFAULT 0,
       element VARCHAR (255),
       period  VARCHAR (255),
-      categoryOptionCombo VARCHAR (255),
+      category VARCHAR (255),
       last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'ist')
    )`).catch(e => {
       console.log("CREATE DHIS AGGREGATE TABLE ERROR", e)
@@ -127,7 +127,7 @@ async function updateDhisSyncDB() {
       INSERT INTO public.dhis_sync 
       SELECT DISTINCT ON (uid,scriptid) id,data::jsonb,uid,scriptid,ingested_at
       FROM public.sessions
-      WHERE scriptid ='${s}' AND ingested_at>= ingested_at - interval '14 day' 
+      WHERE scriptid ='${s}'
       AND ingested_at >= '${sync_start_date}'
       AND uid NOT IN (SELECT uid FROM public.dhis_sync WHERE scriptid ='${s}')
       ORDER BY uid,scriptid,id`
@@ -143,18 +143,19 @@ async function updateDHISSyncStatus(entryId) {
 
 async function updateValues(mapper, period, value) {
   const exists = await columnExists(mapper['element'], mapper['categoryOptionCombo'], period);
-  if (exists) {
+  console.log("----EXISTS--",exists,mapper,period)
+  if (exists===true) {
     await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'ist' 
-      where element='${mapper['element']}' and categoryOptionCombo='${mapper['categoryOptionCombo']}' and period='${period}'`);
+      where element='${mapper['element']}' and category='${mapper['categoryOptionCombo']}' and period='${period}'`);
   } else {
-    await pool.query(`INSERT INTO public.dhis_aggregate(element,categoryOptionCombo,period,value)
+    await pool.query(`INSERT INTO public.dhis_aggregate(element,category,period,value)
      VALUES('${mapper['element']}','${mapper['categoryOptionCombo']}','${period}',${value})`);
   }
 }
 
 async function columnExists(element, categoryOptionCombo, period) {
   return await pool.query(`select exists(select 1 from public.dhis_aggregate where element='${element}'
-  and categoryOptionCombo='${categoryOptionCombo}' and period='${period}') AS "exists"`)
+  and category='${categoryOptionCombo}' and period='${period}') AS "exists"`)
     .then(res => {
       if (res && res.rows && Array.isArray(res.rows) && res.rows.length > 0) {
         var jsonString = JSON.stringify(res.rows[0]);
