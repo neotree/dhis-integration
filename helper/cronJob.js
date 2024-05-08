@@ -3,9 +3,9 @@ const agregate = require("../queries/dhis_aggregate");
 
 function updateSyncDBMorning() {
   cron.schedule(
-    "00 06 * * *",
+    "35 05 * * *",
     async () => {
-      agregate.syncDhisAggregate()
+      await agregate.syncDhisAggregate()
     },
     {
       scheduled: true,
@@ -18,7 +18,7 @@ function updateSyncDBMidMorning() {
   cron.schedule(
     "40 09 * * *",
     async () => {
-      agregate.syncDhisAggregate()
+     await agregate.syncDhisAggregate()
     },
     {
       scheduled: true,
@@ -31,7 +31,7 @@ function updateSyncDBAfternoon() {
   cron.schedule(
     "30 15 * * *",
     async () => {
-      db.syncDhisAggregate()
+      await agregate.syncDhisAggregate()
     },
     {
       scheduled: true,
@@ -43,7 +43,7 @@ function updateSyncDBNight() {
   cron.schedule(
     "50 20 * * *",
     async () => {
-      db.syncDhisAggregate()
+      await agregate.syncDhisAggregate()
     },
     {
       scheduled: true,

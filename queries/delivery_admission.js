@@ -7,9 +7,6 @@ async function aggregateDeliveryInAdmission(entry,period){
     const InOrOut = helper.getValueFromKey(entry,'InOrOut',false,false)
     const ReferredFrom2 =  helper.getValueFromKey(entry,'ReferredFrom2',false,false)
 
-    console.log("---Pb--",PlaceBirth)
-    console.log("---INOU--",InOrOut)
-    console.log("---REE--",ReferredFrom2)
 
     if(PlaceBirth==="BBA"){
         helper.updateValues(mapper.RHD_MAT_DELIVERY_IN_TRANSIT,period,1)

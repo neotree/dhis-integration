@@ -6,8 +6,6 @@ async function aggregatePMTCTDischarge(entry) {
 
     const uid = helper.getUid(entry)
 
-    console.log("--TESTING UID--",uid)
-
     if (uid) {
         const matchedAdmission = await helper.getMatchedAdmission(uid)
 

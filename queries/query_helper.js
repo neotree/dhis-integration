@@ -32,7 +32,7 @@ async function getUnsyncedData() {
 
 async function getDHISSyncData() {
 
-  return await pool.query(`SELECT value,element,period,categoryOptionCombo FROM public.dhis_aggregate`)
+  return await pool.query(`SELECT value,element,period,category FROM public.dhis_aggregate`)
     .then(res => {
       if (res && res.rows) {
         var jsonString = JSON.stringify(res.rows);
@@ -123,6 +123,7 @@ async function updateDhisSyncDB() {
   let sync_start_date = config.START_DATE
   // DEDUPLICATE AND SYNC DATA
   for (s of scripts) {
+    console.log("---I  AM IN S!--",s)
     let query = `
       INSERT INTO public.dhis_sync 
       SELECT DISTINCT ON (uid,scriptid) id,data::jsonb,uid,scriptid,ingested_at
@@ -130,6 +131,7 @@ async function updateDhisSyncDB() {
       WHERE scriptid ='${s}'
       AND ingested_at >= '${sync_start_date}'
       AND uid NOT IN (SELECT uid FROM public.dhis_sync WHERE scriptid ='${s}')
+      AND uid IN ('D06F-0097','D06F-0098','D06F-0099','D06F-0100','D06F-0100','D06F-0103','D06F-0104','D06F-0104')
       ORDER BY uid,scriptid,id`
     await pool.query(query)
   }

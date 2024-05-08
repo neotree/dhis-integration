@@ -85,7 +85,9 @@ async function aggregateAllData() {
 
   async function syncToDhis() {
     //GET ALL THE DATA
+    console.log("---I AM SYNCYING----")
     const data = await getDHISSyncData()
+    console.log("---I AM SYNCYING----",data)
     const orgUnit = config.DHIS_ORGUNIT
     const dataSet = config.DHIS_DATASET
     if (data && Array.isArray(data) && data.length > 0) {
@@ -100,7 +102,7 @@ async function aggregateAllData() {
             dataElement: d.element,
             value: d.value,
             orgUnit: orgUnit,
-            categoryOptionCombo: d.categoryOptionCombo
+            categoryOptionCombo: d.category
           }],
         };
         let reqOpts = {};
