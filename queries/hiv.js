@@ -18,11 +18,11 @@ async function aggregateHiv(entry,period){
         helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NOT_DONE,period,1) 
     }
 
-    if((TestThisPreg==='AD' || TestThisPreg==='BP') &&HIVTestResults==='NR'){
+    if((TestThisPreg==='DP' || TestThisPreg==='BP') &&HIVTestResults==='NR'){
         helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_NAGATIVE,period,1) 
     }
 
-    if((TestThisPreg==='AD' || TestThisPreg==='BP') &&HIVTestResults==='R'){
+    if((TestThisPreg==='DP' || TestThisPreg==='BP') &&HIVTestResults==='R'){
         helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_POSITIVE,period,1) 
     }
     

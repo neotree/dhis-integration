@@ -123,7 +123,7 @@ async function updateDhisSyncDB() {
   let sync_start_date = config.START_DATE
   // DEDUPLICATE AND SYNC DATA
   for (s of scripts) {
-    console.log("---I  AM IN S!--",s)
+    //TODO Take Data From Cleaned Sessions
     let query = `
       INSERT INTO public.dhis_sync 
       SELECT DISTINCT ON (uid,scriptid) id,data::jsonb,uid,scriptid,ingested_at
@@ -131,7 +131,7 @@ async function updateDhisSyncDB() {
       WHERE scriptid ='${s}'
       AND ingested_at >= '${sync_start_date}'
       AND uid NOT IN (SELECT uid FROM public.dhis_sync WHERE scriptid ='${s}')
-      AND uid IN ('D06F-0097','D06F-0098','D06F-0099','D06F-0100','D06F-0100','D06F-0103','D06F-0104','D06F-0104')
+      AND uid IN ('D06F-0136','D06F-0137','D06F-0138','D06F-0139','D06F-0140','D06F-0141','D06F-0142')
       ORDER BY uid,scriptid,id`
     await pool.query(query)
   }
@@ -144,8 +144,8 @@ async function updateDHISSyncStatus(entryId) {
 }
 
 async function updateValues(mapper, period, value) {
+  console.log("----RUNNING---")
   const exists = await columnExists(mapper['element'], mapper['categoryOptionCombo'], period);
-  console.log("----EXISTS--",exists,mapper,period)
   if (exists===true) {
     await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'ist' 
       where element='${mapper['element']}' and category='${mapper['categoryOptionCombo']}' and period='${period}'`);
