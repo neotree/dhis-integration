@@ -3,13 +3,13 @@ const helper = require("./query_helper")
 
 async function aggregateNewBornComplicationsInAdmission(entry, period) {
 
-    const Diagnoses = Array.from(helper.getValueFromKey(entry, 'diagnoses', false, true))
-    const InOrOut = helper.getValueFromKey(entry, 'InOrOut', false, false)
-    const BirthWeight = helper.getValueFromKey(entry, 'BirthWeight', false, false)
+    const Diagnoses = Array.from(await helper.getValueFromKey(entry, 'diagnoses', false, true))
+    const InOrOut = await helper.getValueFromKey(entry, 'InOrOut', false, false)
+    const BirthWeight = await helper.getValueFromKey(entry, 'BirthWeight', false, false)
 
     if (Diagnoses && Diagnoses.length > 0) {
         if (Diagnoses.find(d => d["Birth Asphyxia"]) && InOrOut ==="Yes" ) {
-            helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_ASPHYXIA, period, 1)
+            await helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_ASPHYXIA, period, 1)
         }
     
         if (Diagnoses) {
@@ -21,7 +21,7 @@ async function aggregateNewBornComplicationsInAdmission(entry, period) {
                     || Diagnoses.find(d => d['Extremely Premature (<28 weeks)'])
                     || Diagnoses.find(d => d['Prematurity with RD'])
                 ) {
-                    helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_PREMATURITY, period, 1)
+                    await helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_PREMATURITY, period, 1)
                 }
                 //OTHER COMPLICATIONS
                 const otherComplications = Diagnoses.filter(d => (!d['Birth Asphyxia']
@@ -36,22 +36,31 @@ async function aggregateNewBornComplicationsInAdmission(entry, period) {
                     && !d['Low Birth Weight (1500-2499g)']
                     && !d['Very Low Birth Weight (1000-1499g)']
                     && !d['Extremely Low Birth Weight (<1000g)'])
+                    .filter(item=>{
+                        for(const [key,value] of Object.entries(item)){
+                            if(value.hcw_follow_instructions==='No'){
+                                return false
+                            }
+                                return true   
+                       }
+                     })
                 
                 if (otherComplications.length > 0) {
-                    helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_OTHER, period, otherComplications.length)
+                    await helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_OTHER, period, otherComplications.length)
                 }
                //SEPSIS
-                if( Diagnoses.find(d=>d['Suspected Neonatal Sepsis'])
+               const sepsis =  Diagnoses.find(d=>d['Suspected Neonatal Sepsis']) 
                 || Diagnoses.find(d=>d['Neonatal Sepsis (Early onset - Asymptomatic)'])
                 || Diagnoses.find(d=>d['Neonatal Sepsis (Early onset - Symptomatic)'])
-                || Diagnoses.find(d=>d['Neonatal Sepsis (Late onset - Asymptomatic)'])){
+                || Diagnoses.find(d=>d['Neonatal Sepsis (Late onset - Asymptomatic)'])
 
-                    helper.updateValues(mapper. RHD_MAT_NEWBORN_COMPLICATIONS_SEPSIS, period, 1)
+                if(sepsis && sepsis.hcw_follow_instructions!=="No"){
+                    await helper.updateValues(mapper. RHD_MAT_NEWBORN_COMPLICATIONS_SEPSIS, period, 1)
                 }
 
             }
             if(BirthWeight<2500){
-                helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_LBW, period, 1)
+                await helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_LBW, period, 1)
             }
 
         }

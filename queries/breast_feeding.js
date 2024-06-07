@@ -3,10 +3,10 @@ const helper = require("./query_helper")
 
 async function aggregateBreastFeeding(entry,period){
 
-    const BFeed = helper.getValueFromKey(entry,'BFeed',false,false)
+    const BFeed = await helper.getValueFromKey(entry,'BFeed',false,false)
 
     if(BFeed==="NBF" || BFeed==="LBF"){
-        helper.updateValues(mapper.BREAST_FEEDING_NEVER_INITIATED_OR_LESS_THAN_60_MINS,period,1)
+        await helper.updateValues(mapper.BREAST_FEEDING_INITIATED_NEVER_OR_LATER_THAN_60,period,1)
     }
 
 }
