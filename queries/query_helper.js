@@ -122,7 +122,7 @@ async function updateDhisSyncDB() {
   const scripts = [config.ADMISSIONS, config.DISCHARGE, config.MATERNALS];
   let sync_start_date = config.START_DATE
   // DEDUPLICATE AND SYNC DATA
-  for (s of scripts) {
+  for (const s of scripts) {
     //TODO Take Data From Cleaned Sessions
     let query = `
       INSERT INTO public.dhis_sync 

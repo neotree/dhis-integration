@@ -32,101 +32,99 @@ const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").
 
 async function aggregateAllData() {
 
-  await updateDhisSyncDB();
-  const data = await getUnsyncedData();
-  if (Array.isArray(data) && data.length > 0) {
-    for (e of data) {
-      if (e.scriptid === config.ADMISSIONS) {
-        const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
-        if (admissionDate) {
-          const period = getReportingPeriod(admissionDate)
-          if (period != null) {
-            await aggregateDeliveryInAdmission(e, period)
-            await aggregateNewBornComplicationsInAdmission(e, period)
-            await aggregateRoutineCareAdmission(e, period)
-            await aggregateTEOAdmission(e, period)
-
-          }
+    await updateDhisSyncDB();
+    const data = await getUnsyncedData();
+    if (Array.isArray(data) && data.length > 0) {
+      for (const e of data) {
+        if (e.scriptid === config.ADMISSIONS) {
+          const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
+          if (admissionDate) {
+            const period = getReportingPeriod(admissionDate)
+            if (period != null) {
+                await aggregateDeliveryInAdmission(e, period)
+                await aggregateNewBornComplicationsInAdmission(e, period)
+                await aggregateRoutineCareAdmission(e, period)
+                await aggregateTEOAdmission(e, period)
+  
+              }
+             }
+            }  
+             else if(e.scriptid === config.MATERNALS) {
+              const admissionDate = getValueFromKey(e, "DateAdmission", false, false)
+              if (admissionDate) {
+                const period = getReportingPeriod(admissionDate)
+                await aggregateArt(e, period);
+                await aggregateBreastFeeding(e, period);
+                await aggregateDeliveryInMaternity(e, period);
+                await aggregateEmergencyObstetric(e, period);
+                await aggregateHiv(e, period)
+                await aggregateMaternalOutcome(e, period)
+                await aggregateNewBornComplicationsInMaternity(e, period)
+                await aggregateObstetricComplications(e, period)
+                await aggregatePMTCTMaternity(e, period)
+                await aggregateRoutineCareMaternity(e, period)
+                await aggregateTEOMaternity(e, period)
+                await aggregateReferrals(e, period)
+                await aggregateSingleTwinsTriplets(e, period)
+                await aggregateStaffMaternity(e, period)
+                await aggregateVitA(e, period)
+  
+              }
+  
+            }
+           else if (e.scriptid === config.DISCHARGE) {
+          await aggregateNewBornComplicationsMngtDischarge(e)
+          await aggregatePMTCTDischarge(e)
+          await aggregateRoutineCareDischarge(e)
+  
         }
+        await updateDHISSyncStatus(e.id)
       }
-      else if (e.scriptid === config.MATERNALS) {
-        const admissionDate = getValueFromKey(e, "DateAdmission", false, false)
-        if (admissionDate) {
-          const period = getReportingPeriod(admissionDate)
-          await aggregateArt(e, period);
-          await aggregateBreastFeeding(e, period);
-          await aggregateDeliveryInMaternity(e, period);
-          await aggregateEmergencyObstetric(e, period);
-          await aggregateHiv(e, period)
-          await aggregateMaternalOutcome(e, period)
-          await aggregateNewBornComplicationsInMaternity(e, period)
-          await aggregateObstetricComplications(e, period)
-          await aggregatePMTCTMaternity(e, period)
-          await aggregateRoutineCareMaternity(e, period)
-          await aggregateTEOMaternity(e, period)
-          await aggregateReferrals(e, period)
-          await aggregateSingleTwinsTriplets(e, period)
-          await aggregateStaffMaternity(e, period)
-          await aggregateVitA(e, period)
-
-        }
-
-      }
-      else if (e.scriptid === config.DISCHARGE) {
-        await aggregateNewBornComplicationsMngtDischarge(e)
-        await aggregatePMTCTDischarge(e)
-        await aggregateRoutineCareDischarge(e)
-
-      }
-      await updateDHISSyncStatus(e.id)
     }
   }
-}
 
-async function syncToDhis() {
-  //GET ALL THE DATA
-  const data = await getDHISSyncData()
-  const orgUnit = config.DHIS_ORGUNIT
-  const dataSet = config.DHIS_DATASET
-  if (data && Array.isArray(data) && data.length > 0) {
-    const url = `${config.DHIS_HOST}/api/dataValueSets?importStrategy=UPDATE`;
-
-    for (d of data) {
-      let body = {
-        dataSet: dataSet,
-        period: d.period,
-        dataValues: [{
-          dataElement: d.element,
-          value: d.value,
-          orgUnit: orgUnit,
-          categoryOptionCombo: d.category
-        }],
-      };
-   
-      fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Basic ${btoa(`${config.DHIS_USER}:${config.DB_PW}`)}`
-        },
-        body: JSON.stringify(body)
-      })
-        .then(response => {
-          if (response.ok) {
-            console.log('Data sent successfully',response);
-          } else {
-            console.error('Error sending data:', response.status, response.statusText);
-          }
+  async function syncToDhis() {
+    //GET ALL THE DATA
+    const data = await getDHISSyncData()
+    const orgUnit = config.DHIS_ORGUNIT
+    const dataSet = config.DHIS_DATASET
+    if (data && Array.isArray(data) && data.length > 0) {
+      const url = `${config.DHIS_HOST}/api/dataValueSets`;
+      var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
+  
+      for (const d of data) {
+        let body = {
+          dataSet: dataSet,
+          period: d.period,
+          dataValues: [{
+            dataElement: d.element,
+            value: d.value,
+            orgUnit: orgUnit,
+            categoryOptionCombo: d.category
+          }],
+        };
+        let reqOpts = {};
+        reqOpts.headers = { Authorization: auth };
+        reqOpts.headers["Content-Type"] = "application/json";
+        reqOpts.body = JSON.stringify({ ...body });
+  
+        fetch(url, {
+          method: "POST",
+          ...reqOpts,
         })
-        .catch(error => {
-          console.error('Error:', error);
-        });
-
-
+          .then((res) => res.json())
+          .then((res) => {
+            console.log("INDEX===",data.indexOf(d))
+          })
+          .catch((err) => {
+            console.log("err===", err)
+          });
+  
+      }
     }
   }
-}
 
-module.exports = {
-  aggregateAllData, syncToDhis
-}
+  module.exports = {
+    aggregateAllData, syncToDhis
+  }
+  
