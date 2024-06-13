@@ -5,7 +5,7 @@ async function aggregateRoutineCareMaternity(entry, period) {
 
     const Chlor  = await helper.getValueFromKey(entry, "Chlor", false, false);
     const BabyNursery = await helper.getValueFromKey(entry, "BabyNursery", false, false);
-    const VitK  = await helper.getValueFromKey(entry, "VitK", false, false);
+    const VitK  = await helper.getValueFromKey(entry, "VitK", false, false) || await helper.getValueFromKey(entry, "Vit K") ;
     const ITN  = await helper.getValueFromKey(entry, "ITN", false, false);
     
     if(BabyNursery==="N") {

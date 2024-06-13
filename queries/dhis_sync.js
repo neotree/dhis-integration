@@ -114,7 +114,7 @@ async function aggregateAllData() {
         })
           .then((res) => res.json())
           .then((res) => {
-            console.log("INDEX===",data.indexOf(d))
+         
           })
           .catch((err) => {
             console.log("err===", err)

@@ -16,7 +16,7 @@ async function aggregateRoutineCareDischarge(entry) {
             if (InOrOut === "Yes" && DateTimeAdmission) {
                 const period = getReportingPeriod(DateTimeAdmission)
                 if (period != null) {
-                    const ITN = await helper.getValueFromKey(entry, "ITN ", false, false);
+                    const ITN = await helper.getValueFromKey(entry, "ITN", false, false);
                     if (ITN === "Y") {
                         await helper.updateValues(mapper.RHD_MAT_ROUTINE_CARE_ITN_GIVEN, period, 1)
 

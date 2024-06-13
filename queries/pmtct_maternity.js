@@ -11,7 +11,7 @@ async function aggregatePMTCTMaternity(entry, period) {
 
     if (HIVTestResults === "R" 
        && (NeoTreeOutcome != "NND" || NeoTreeOutcome != "BID")
-       && BabyNursery==="Y") {
+       && BabyNursery!="Y") {
         if(NVPgiven === "Y" ){
         await helper.updateValues(mapper.RHD_MAT_NEWBORN_SURVIVAL_PMTCT_ALIVE_EXP_NVP_STARTED, period, 1)
         } else if(NVPgiven==="N") {
