@@ -4,7 +4,7 @@ module.exports = {
     RHD_MAT_HIV_TEST_RESULTS_NEW_NAGATIVE: { element: "MD0Gp8MzkHf", categoryOptionCombo: "Tt7fU5lUhAU" },
     RHD_MAT_HIV_TEST_RESULTS_NEW_POSITIVE: { element: "xRrJWogiEMf", categoryOptionCombo: "Tt7fU5lUhAU" },
     RHD_MAT_HIV_TEST_RESULTS_NOT_DONE: { element: "U3FydV1M1RQ", categoryOptionCombo: "Tt7fU5lUhAU" },
-    RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_NAGATIVE: { element: "PpmPCtwOWNR", categoryOptionCombo: "Tt7fU5lUhAU" },
+    //RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_NAGATIVE: { element: "PpmPCtwOWNR", categoryOptionCombo: "Tt7fU5lUhAU" },
     RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_POSITIVE: { element: "a3DzFDGAQAi", categoryOptionCombo: "Tt7fU5lUhAU" },
     //ART
     RHD_MAT_ART_MOTHER_NOT_ON_ART: { element: "MoximPvXuj6", categoryOptionCombo: "GoX45uTUUCH", },
@@ -36,7 +36,7 @@ module.exports = {
     RHD_MAT_EMERGENCE_OBSTETRIC_CARE_OXYTOCIN: { element: "FhNg0SdUMe8", categoryOptionCombo: "Tt7fU5lUhAU" },
 
     //REFERAL 
-    RHD_MAT_REFERRED_OUT_NO: { element: "ViOAupIUYOG", categoryOptionCombo: "Tt7fU5lUhAU" },
+   // RHD_MAT_REFERRED_OUT_NO: { element: "ViOAupIUYOG", categoryOptionCombo: "Tt7fU5lUhAU" },
     RHD_MAT_REFERRED_OUT_YES: { element: "l2GWTPGK4QP", categoryOptionCombo: "Tt7fU5lUhAU" },
 
     //VITAMIN A

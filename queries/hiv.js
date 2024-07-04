@@ -18,9 +18,9 @@ async function aggregateHiv(entry,period){
         await helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_NOT_DONE,period,1) 
     }
 
-    if((TestThisPreg==='DP' || TestThisPreg==='BP') &&HIVTestResults==='NR'){
-        await helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_NAGATIVE,period,1) 
-    }
+    // if((TestThisPreg==='DP' || TestThisPreg==='BP') &&HIVTestResults==='NR'){
+    //     await helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_NAGATIVE,period,1) 
+    // }
 
     if((TestThisPreg==='DP' || TestThisPreg==='BP') &&HIVTestResults==='R'){
         await helper.updateValues(mapper.RHD_MAT_HIV_TEST_RESULTS_PREVIOUS_POSITIVE,period,1) 

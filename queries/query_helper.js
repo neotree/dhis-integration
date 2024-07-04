@@ -1,6 +1,7 @@
 
 const { Pool } = require('pg');
 const config = require("../config/dev");
+const mapper = require("./mapper")
 
 const connectionString = `postgresql://${config.DB_USER}:${config.DB_PW}@${config.DB_HOST}:${config.DB_PORT}/${config.DB}`;
 
@@ -145,19 +146,14 @@ async function updateDHISSyncStatus(entryId) {
 
 async function updateValues(mapper, period, value) {
   console.log("----RUNNING---")
-  const exists = await columnExists(mapper['element'], mapper['categoryOptionCombo'], period);
-  if (exists===true) {
-    await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'ist' 
+  await seedZeroesForPeriod(period);
+  await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'ist' 
       where element='${mapper['element']}' and category='${mapper['categoryOptionCombo']}' and period='${period}'`);
-  } else {
-    await pool.query(`INSERT INTO public.dhis_aggregate(element,category,period,value)
-     VALUES('${mapper['element']}','${mapper['categoryOptionCombo']}','${period}',${value})`);
-  }
 }
 
-async function columnExists(element, categoryOptionCombo, period) {
-  return await pool.query(`select exists(select 1 from public.dhis_aggregate where element='${element}'
-  and category='${categoryOptionCombo}' and period='${period}') AS "exists"`)
+// USE THIS FUNCTION TO SET ZERO VALUES TO ALL DATA ELEMENTS ON ENCOUNTER OF A NEW PERIOD
+async function seedZeroesForPeriod(period) {
+  const periodSeeded = await pool.query(`select exists(select 1 from public.dhis_aggregate where "period"='${period}') AS "exists"`)
     .then(res => {
       if (res && res.rows && Array.isArray(res.rows) && res.rows.length > 0) {
         var jsonString = JSON.stringify(res.rows[0]);
@@ -167,13 +163,21 @@ async function columnExists(element, categoryOptionCombo, period) {
     }).catch(e => {
       return false
     })
+  if (!periodSeeded) {
+    for (const key in mapper) {
+      await pool.query(`INSERT INTO public.dhis_aggregate(element,category,period,value)
+        VALUES('${mapper[key]['element']}','${mapper[key]['categoryOptionCombo']}','${period}',0)`);
+
+    }
+  }
 }
 
 
 module.exports = {
-  getUnsyncedData, updateValues, 
+  getUnsyncedData, updateValues,
   getValueFromKey, getMatched,
-   getUid, getMatchedAdmission,
-   getDHISSyncData,updateDHISSyncStatus,
-   updateDhisSyncDB
+  getUid, getMatchedAdmission,
+  getDHISSyncData, updateDHISSyncStatus,
+  updateDhisSyncDB,
+  seedZeroesForPeriod
 }
