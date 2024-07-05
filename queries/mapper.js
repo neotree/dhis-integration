@@ -44,14 +44,14 @@ module.exports = {
     RHD_MAT_VITAMIN_A_ADMINISTRATION_NOT_GIVEN: { element: "REbkEp8YboK", categoryOptionCombo: "Tt7fU5lUhAU" },
       //MARTERNAL OUTCOME
       RHD_MAT_MATERNAL_DEATHS: { element: "WjHvEHMCyKo", categoryOptionCombo: "Tt7fU5lUhAU" },
-      RHD_MAT_MOTHER_DIED_BEFORE_DISCHARGE: { element: "dTK0MlakKzU", categoryOptionCombo: "Tt7fU5lUhAU" },
-      RHD_MAT_MOTHER_ALIVE: { element: "qpSUfm5iTZo", categoryOptionCombo: "Tt7fU5lUhAU" },
+      //RHD_MAT_MOTHER_DIED_BEFORE_DISCHARGE: { element: "dTK0MlakKzU", categoryOptionCombo: "Tt7fU5lUhAU" },
+      //RHD_MAT_MOTHER_ALIVE: { element: "qpSUfm5iTZo", categoryOptionCombo: "Tt7fU5lUhAU" },
 
 
     //SINGLE, TWIN/ TRIPLETS
     RHD_MAT_NUMBER_OF_BABIES_SINGLETONS: { element: "jZ5TP3UpaiQ", categoryOptionCombo: "PJEmG4BbHTf" },
     RHD_MAT_NUMBER_OF_BABIES_TWINS_OR_TRIPLETS: { element: "jZ5TP3UpaiQ", categoryOptionCombo: "W3Angorx03z" },
-    RHD_TOTAL_NUMBER_OF_BABIES: { element: "NogxNBMHqK3", categoryOptionCombo: "Tt7fU5lUhAU" },
+      //RHD_TOTAL_NUMBER_OF_BABIES: { element: "NogxNBMHqK3", categoryOptionCombo: "Tt7fU5lUhAU" },
 
        //DELIVERY
        RHD_MAT_DELIVERY_IN_TRANSIT: { element: "KOu770F7YOQ", categoryOptionCombo: "Tt7fU5lUhAU" },
