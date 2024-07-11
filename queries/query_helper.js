@@ -132,7 +132,7 @@ async function updateDhisSyncDB() {
       WHERE scriptid ='${s}'
       AND ingested_at >= '${sync_start_date}'
       AND uid NOT IN (SELECT uid FROM public.dhis_sync WHERE scriptid ='${s}')
-      AND uid IN ('D06F-0136','D06F-0137','D06F-0138','D06F-0139','D06F-0140','D06F-0141','D06F-0142')
+      OR (uid IN ('D06F-0136','D06F-0137','D06F-0138','D06F-0139','D06F-0140','D06F-0141','D06F-0142'))
       ORDER BY uid,scriptid,id`
     await pool.query(query)
   }
@@ -145,7 +145,6 @@ async function updateDHISSyncStatus(entryId) {
 }
 
 async function updateValues(mapper, period, value) {
-  console.log("----RUNNING---")
   await seedZeroesForPeriod(period);
   await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'ist' 
       where element='${mapper['element']}' and category='${mapper['categoryOptionCombo']}' and period='${period}'`);
