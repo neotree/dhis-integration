@@ -84,7 +84,7 @@ async function aggregateAllData() {
   }
 
   async function syncToDhis() {
- 
+    console.log("----YUT---")
     //GET ALL THE DATA
     const data = await getDHISSyncData()
     const orgUnit = config.DHIS_ORGUNIT

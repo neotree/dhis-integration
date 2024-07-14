@@ -126,14 +126,13 @@ async function updateDhisSyncDB() {
   for (const s of scripts) {
     //TODO Take Data From Cleaned Sessions
     let query = `
-      INSERT INTO public.dhis_sync 
-      SELECT DISTINCT ON (uid,scriptid) id,data::jsonb,uid,scriptid,ingested_at
+      INSERT INTO public.dhis_sync (data,uid,scriptid,ingested_at)
+      SELECT DISTINCT ON (uid,scriptid) data::jsonb,uid,scriptid,ingested_at
       FROM public.sessions
       WHERE scriptid ='${s}'
-      AND ingested_at >= '${sync_start_date}'
-      AND uid NOT IN (SELECT uid FROM public.dhis_sync WHERE scriptid ='${s}')
-      OR (uid IN ('D06F-0136','D06F-0137','D06F-0138','D06F-0139','D06F-0140','D06F-0141','D06F-0142'))
-      ORDER BY uid,scriptid,id`
+      AND ((uid IN ('D06F-0136','D06F-0137','D06F-0138','D06F-0139','D06F-0140','D06F-0141','D06F-0142'))
+      OR (ingested_at >= '${sync_start_date}'))
+      AND ((uid,scriptid) not in (select uid,scriptid from public.dhis_sync))`
     await pool.query(query)
   }
 }
