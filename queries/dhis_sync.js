@@ -95,6 +95,7 @@ async function aggregateAllData() {
       var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
   
       for (const d of data) {
+        console.log("----D---",d.id)
         let body = {
           dataSet: dataSet,
           period: d.period,
