@@ -85,7 +85,7 @@ async function aggregateAllData() {
   }
 
   async function syncToDhis() {
-  
+  console.log("---RUNNING---")
     //GET ALL THE DATA
     const data = await getDHISSyncData()
     const orgUnit = config.DHIS_ORGUNIT
@@ -115,12 +115,14 @@ async function aggregateAllData() {
           ...reqOpts,
         })
           .then((res) => res.json())
-          .then(async (res) => {
-           await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
+          .then((res) => {
+          updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
           })
-          .catch(async (err) => {
-          await updateDHISAggregateStatus(d.id,'FAILED',err.message)
-          });
+          .catch((err) => {
+            //console.log("---ERR---",err.message)
+          updateDHISAggregateStatus(d.id,'FAILED',err.message)
+          })
+      
       }
     }
   }
