@@ -12,7 +12,7 @@ const pool = new Pool({
 
 async function getUnsyncedData() {
   //SELECT DATA TO UPDATE
-  return await pool.query(`SELECT id,scriptid, data FROM public.dhis_sync WHERE synced is false limit 1000`)
+  return await pool.query(`SELECT id,scriptid, data FROM public.dhis_sync WHERE synced is false`)
     .then(res => {
       if (res && res.rows) {
         var jsonString = JSON.stringify(res.rows);
@@ -33,7 +33,7 @@ async function getUnsyncedData() {
 
 async function getDHISSyncData() {
 
-  return await pool.query(`SELECT value,element,period,category FROM public.dhis_aggregate`)
+  return await pool.query(`SELECT id,value,element,period,category FROM public.dhis_aggregate`)
     .then(res => {
       if (res && res.rows) {
         var jsonString = JSON.stringify(res.rows);
@@ -113,7 +113,10 @@ async function updateDhisSyncDB() {
       element VARCHAR (255),
       period  VARCHAR (255),
       category VARCHAR (255),
-      last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'ist')
+      last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'Africa/Johannesburg'),
+      last_attempt TIMESTAMP WITHOUT TIME ZONE,
+      status VARCHAR (255),
+      error_msg VARCHAR (255)
    )`).catch(e => {
       console.log("CREATE DHIS AGGREGATE TABLE ERROR", e)
     })
@@ -142,10 +145,16 @@ async function updateDHISSyncStatus(entryId) {
     await pool.query(`UPDATE public.dhis_sync SET synced = TRUE WHERE id=${entryId}`);
   }
 }
+async function updateDHISAggregateStatus(id,status,msg) {
+  if (entryId) {
+    await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${msg}'
+    ,last_attempt=now() at time zone 'Africa/Johannesburg'  WHERE id=${id}`);
+  }
+}
 
 async function updateValues(mapper, period, value) {
   await seedZeroesForPeriod(period);
-  await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'ist' 
+  await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'Africa/Johannesburg' 
       where element='${mapper['element']}' and category='${mapper['categoryOptionCombo']}' and period='${period}'`);
 }
 
@@ -177,5 +186,6 @@ module.exports = {
   getUid, getMatchedAdmission,
   getDHISSyncData, updateDHISSyncStatus,
   updateDhisSyncDB,
-  seedZeroesForPeriod
+  seedZeroesForPeriod,
+  updateDHISAggregateStatus
 }

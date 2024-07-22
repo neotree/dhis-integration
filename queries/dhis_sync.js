@@ -27,6 +27,7 @@ const getValueFromKey = require("./query_helper").getValueFromKey
 const updateDHISSyncStatus = require("./query_helper").updateDHISSyncStatus
 const updateDhisSyncDB = require("./query_helper").updateDhisSyncDB
 const getDHISSyncData = require("./query_helper").getDHISSyncData
+const updateDHISAggregateStatus = require("./query_helper").updateDHISAggregateStatus
 const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").aggregateRoutineCareDischarge
 
 
@@ -114,13 +115,12 @@ async function aggregateAllData() {
           ...reqOpts,
         })
           .then((res) => res.json())
-          .then((res) => {
-         
+          .then(async (res) => {
+           await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
           })
-          .catch((err) => {
-            console.log("err===", err)
+          .catch(async (err) => {
+          await updateDHISAggregateStatus(d.id,'FAILED',err.message)
           });
-  
       }
     }
   }
