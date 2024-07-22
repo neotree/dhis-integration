@@ -95,7 +95,6 @@ async function aggregateAllData() {
       var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
   
       for (const d of data) {
-        console.log("----D---",d.id)
         let body = {
           dataSet: dataSet,
           period: d.period,
@@ -110,20 +109,19 @@ async function aggregateAllData() {
         reqOpts.headers = { Authorization: auth };
         reqOpts.headers["Content-Type"] = "application/json";
         reqOpts.body = JSON.stringify({ ...body });
-  
+        reqOpts.timeout = 30000; 
+
         fetch(url, {
           method: "POST",
           ...reqOpts,
         })
           .then((res) => res.json())
-          .then((res) => {
-          updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
+          .then(async (res) => {
+          await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
           })
-          .catch((err) => {
-            //console.log("---ERR---",err.message)
-          updateDHISAggregateStatus(d.id,'FAILED',err.message)
+          .catch(async (err) => {
+          await updateDHISAggregateStatus(d.id,'FAILED',err.message)
           })
-      
       }
     }
   }

@@ -145,9 +145,9 @@ async function updateDHISSyncStatus(entryId) {
     await pool.query(`UPDATE public.dhis_sync SET synced = TRUE WHERE id=${entryId}`);
   }
 }
-function updateDHISAggregateStatus(id,status,msg) {
-  if (entryId) {
-    pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${msg}'
+async function updateDHISAggregateStatus(id,status,msg) {
+  if (id) {
+   await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${msg}'
     ,last_attempt=now() at time zone 'Africa/Johannesburg'  WHERE id=${id}`);
   }
 }
