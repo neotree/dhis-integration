@@ -108,7 +108,7 @@ async function aggregateAllData() {
         reqOpts.headers = { Authorization: auth };
         reqOpts.headers["Content-Type"] = "application/json";
         reqOpts.body = JSON.stringify({ ...body });
-        reqOpts.timeout = 30000; 
+        reqOpts.timeout = 300000; 
 
         fetch(url, {
           method: "POST",
@@ -116,9 +116,11 @@ async function aggregateAllData() {
         })
           .then((res) => res.json())
           .then(async (res) => {
+            console.log("----RES----",res)
           await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
           })
           .catch(async (err) => {
+            console.log("----ERR----",err.message)
           await updateDHISAggregateStatus(d.id,'FAILED',err.message)
           })
       }
