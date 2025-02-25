@@ -5,7 +5,7 @@ function updateSyncDBMorning() {
   cron.schedule(
     "00 00 * * *",
     async () => {
-      await agregate.syncDhisAggregate()
+      await agregate.syncDhisAggregate(false)
     },
     {
       scheduled: true,
@@ -18,7 +18,7 @@ function updateSyncDBMidMorning() {
   cron.schedule(
     "40 09 * * *",
     async () => {
-     await agregate.syncDhisAggregate()
+     await agregate.syncDhisAggregate(false)
     },
     {
       scheduled: true,
@@ -31,7 +31,7 @@ function updateSyncDBAfternoon() {
   cron.schedule(
     "10 16 * * *",
     async () => {
-      await agregate.syncDhisAggregate()
+      await agregate.syncDhisAggregate(false)
     },
     {
       scheduled: true,
@@ -43,7 +43,19 @@ function updateSyncDBNight() {
   cron.schedule(
     "50 20 * * *",
     async () => {
-      await agregate.syncDhisAggregate()
+      await agregate.syncDhisAggregate(false)
+    },
+    {
+      scheduled: true,
+      timezone: "Africa/Harare",
+    }
+  );
+}
+function updateSyncFailed() {
+  cron.schedule(
+    "*/30 * * * *",
+    async () => {
+      await agregate.syncDhisAggregate(true)
     },
     {
       scheduled: true,
@@ -54,5 +66,6 @@ function updateSyncDBNight() {
 
 
 
-module.exports = { updateSyncDBMorning,updateSyncDBMidMorning,updateSyncDBAfternoon,updateSyncDBNight}
+
+module.exports = { updateSyncDBMorning,updateSyncDBMidMorning,updateSyncDBAfternoon,updateSyncDBNight,updateSyncFailed}
 

@@ -84,9 +84,13 @@ async function aggregateAllData() {
     }
   }
 
-  async function syncToDhis() {
+  async function syncFailedRecords(){
+    getUnsyncedAggregateData
+  }
+
+  async function syncToDhis(failed) {
     //GET ALL THE DATA
-    const data = await getDHISSyncData()
+    const data = await getDHISSyncData(failed)
     const orgUnit = config.DHIS_ORGUNIT
     const dataSet = config.DHIS_DATASET
     if (data && Array.isArray(data) && data.length > 0) {
@@ -116,11 +120,9 @@ async function aggregateAllData() {
         })
           .then((res) => res.json())
           .then(async (res) => {
-            console.log("----RES----",res)
           await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
           })
           .catch(async (err) => {
-            console.log("----ERR----",err.message)
           await updateDHISAggregateStatus(d.id,'FAILED',err.message)
           })
       }

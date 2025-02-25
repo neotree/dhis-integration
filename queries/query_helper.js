@@ -31,9 +31,14 @@ async function getUnsyncedData() {
     })
 }
 
-async function getDHISSyncData() {
+async function getDHISSyncData(failed) {
+ 
+  let query = `SELECT id,value,element,period,category FROM public.dhis_aggregate`
+  if(failed){
+    query=`SELECT id,value,element,period,category FROM public.dhis_aggregate where status=='FAILED'`
+  }
 
-  return await pool.query(`SELECT id,value,element,period,category FROM public.dhis_aggregate`)
+  return await pool.query(query)
     .then(res => {
       if (res && res.rows) {
         var jsonString = JSON.stringify(res.rows);
