@@ -35,7 +35,7 @@ async function getDHISSyncData(failed) {
  
   let query = `SELECT id,value,element,period,category FROM public.dhis_aggregate`
   if(failed){
-    query=`SELECT id,value,element,period,category FROM public.dhis_aggregate where status=='FAILED'`
+    query=`SELECT id,value,element,period,category FROM public.dhis_aggregate where status='FAILED'`
   }
 
   return await pool.query(query)
