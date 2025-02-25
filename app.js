@@ -12,9 +12,9 @@ app.get('/', (request, response) => {
 })
 
 dhisServices.updateSyncDBMorning();
-// dhisServices.updateSyncDBMidMorning();
-// dhisServices.updateSyncDBAfternoon();
-// dhisServices.updateSyncDBNight();
+dhisServices.updateSyncDBMidMorning();
+dhisServices.updateSyncDBAfternoon();
+dhisServices.updateSyncDBNight();
 
 server.listen(3008, () =>
   console.log(`Server is listening on port 3008.`)

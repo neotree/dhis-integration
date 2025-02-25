@@ -29,7 +29,7 @@ function updateSyncDBMidMorning() {
 
 function updateSyncDBAfternoon() {
   cron.schedule(
-    "18 13 * * *",
+    "30 13 * * *",
     async () => {
       await agregate.syncDhisAggregate()
     },
