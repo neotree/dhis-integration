@@ -118,10 +118,8 @@ async function aggregateAllData() {
           .then((res) => res.json())
           .then(async (res) => {
           await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
-          console.log("#####--#####",res)
           })
           .catch(async (err) => {
-            console.log("####-######",err)
           await updateDHISAggregateStatus(d.id,'FAILED',err.message)
           })
       }
