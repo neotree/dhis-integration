@@ -15,7 +15,6 @@
 
 function getReportingPeriod(date) {
   // Try to parse the input into a Date object
-  console.log("--PERIOD BEFORE----",date)
   let period = new Date(date);
 
   // If the date is invalid, try a cleanup + parse fallback
@@ -23,9 +22,7 @@ function getReportingPeriod(date) {
     try {
       const cleaned = String(date).replace(/,\s*/g, ' ');
       period = new Date(Date.parse(cleaned));
-      console.log("--PERIOD AFTER----",period)
     } catch (e) {
-       console.log("--CONVERT ERROR----",e)
       return null;
     }
   }
@@ -38,7 +35,6 @@ function getReportingPeriod(date) {
       .substring(0, 10)
       .replace(/-/g, '')
       .substring(0, 6); // YYYYMM
-       console.log("--CONVERT FINAL----",formattedPeriod)
     return formattedPeriod;
   } else {
     return null;

@@ -39,15 +39,13 @@ async function aggregateAllData() {
       for (const e of data) {
         if (e.scriptid === config.ADMISSIONS) {
           const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
-          console.log("---ADM==",admissionDate)
           if (admissionDate) {
             const period = getReportingPeriod(admissionDate)
-              console.log("---ADM AFTER==",period)
             if (period != null) {
-                // await aggregateDeliveryInAdmission(e, period)
-                // await aggregateNewBornComplicationsInAdmission(e, period)
-                // await aggregateRoutineCareAdmission(e, period)
-                // await aggregateTEOAdmission(e, period)
+                await aggregateDeliveryInAdmission(e, period)
+                await aggregateNewBornComplicationsInAdmission(e, period)
+                await aggregateRoutineCareAdmission(e, period)
+                await aggregateTEOAdmission(e, period)
   
               }
              }
@@ -55,35 +53,34 @@ async function aggregateAllData() {
              else if(e.scriptid === config.MATERNALS) {
               const admissionDate = getValueFromKey(e, "DateAdmission", false, false)
               if (admissionDate) {
-                console.log("---MATERNAL==",admissionDate)
+              
                 const period = getReportingPeriod(admissionDate)
-                 console.log("---MATERNAL AFTER==",period)
-                // await aggregateArt(e, period);
-                // await aggregateBreastFeeding(e, period);
-                // await aggregateDeliveryInMaternity(e, period);
-                // await aggregateEmergencyObstetric(e, period);
-                // await aggregateHiv(e, period)
-                // await aggregateMaternalOutcome(e, period)
-                // await aggregateNewBornComplicationsInMaternity(e, period)
-                // await aggregateObstetricComplications(e, period)
-                // await aggregatePMTCTMaternity(e, period)
-                // await aggregateRoutineCareMaternity(e, period)
-                // await aggregateTEOMaternity(e, period)
-                // await aggregateReferrals(e, period)
-                // await aggregateSingleTwinsTriplets(e, period)
-                // await aggregateStaffMaternity(e, period)
-                // await aggregateVitA(e, period)
+                await aggregateArt(e, period);
+                await aggregateBreastFeeding(e, period);
+                await aggregateDeliveryInMaternity(e, period);
+                await aggregateEmergencyObstetric(e, period);
+                await aggregateHiv(e, period)
+                await aggregateMaternalOutcome(e, period)
+                await aggregateNewBornComplicationsInMaternity(e, period)
+                await aggregateObstetricComplications(e, period)
+                await aggregatePMTCTMaternity(e, period)
+                await aggregateRoutineCareMaternity(e, period)
+                await aggregateTEOMaternity(e, period)
+                await aggregateReferrals(e, period)
+                await aggregateSingleTwinsTriplets(e, period)
+                await aggregateStaffMaternity(e, period)
+                await aggregateVitA(e, period)
   
               }
   
             }
            else if (e.scriptid === config.DISCHARGE) {
-          // await aggregateNewBornComplicationsMngtDischarge(e)
-          // await aggregatePMTCTDischarge(e)
-          // await aggregateRoutineCareDischarge(e)
+          await aggregateNewBornComplicationsMngtDischarge(e)
+          await aggregatePMTCTDischarge(e)
+          await aggregateRoutineCareDischarge(e)
   
         }
-        // await updateDHISSyncStatus(e.id)
+         await updateDHISSyncStatus(e.id)
       }
     }
   }
@@ -121,10 +118,10 @@ async function aggregateAllData() {
         })
           .then((res) => res.json())
           .then(async (res) => {
-          // await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
+           await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
           })
           .catch(async (err) => {
-          // await updateDHISAggregateStatus(d.id,'FAILED',err.message)
+          await updateDHISAggregateStatus(d.id,'FAILED',err.message)
           })
       }
     }
