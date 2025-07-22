@@ -6,7 +6,9 @@ async function aggregateArt(entry,period){
 
     const HAART = await helper.getValueFromKey(entry,'HAART',false,false)
 
-    if(HAART==="N"){
+      const HIVTestResults =  await helper.getValueFromKey(entry,'HIVTestResults',false,false)
+
+    if(HAART==="N" || HIVTestResults==="NR"){
        await helper.updateValues(mapper.RHD_MAT_ART_MOTHER_NOT_ON_ART,period,1)
     }
     if(HAART==="DL"){
