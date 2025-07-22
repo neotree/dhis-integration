@@ -41,7 +41,7 @@ function updateSyncDBAfternoon() {
 }
 function updateSyncDBNight() {
   cron.schedule(
-    "50 22 * * *",
+    "50 17 * * *",
     async () => {
       await agregate.syncDhisAggregate(false)
     },
