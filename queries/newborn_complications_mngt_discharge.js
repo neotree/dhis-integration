@@ -15,7 +15,7 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
             if (InOrOut === "Yes" && DateTimeAdmission) {
                 const period = getReportingPeriod(DateTimeAdmission)
                 if(period!=null){
-                const MedsGiven = Array.from(await helper.getValueFromKey(entry, "MedsGiven", true, false))
+                const MedsGiven = Array.from(await helper.getValueFromKey(entry, "MedsGiven", true, false) || [])
 
                 if (MedsGiven
                     && MedsGiven.length > 0
@@ -28,7 +28,7 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                     || MedsGiven.includes("Mero")) {
                     await helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_ANTIBIOTICS, period,1)
                 }
-                const ThermCare = Array.from(await helper.getValueFromKey(entry, 'ThermCare', true, false))
+                const ThermCare = Array.from(await helper.getValueFromKey(entry, 'ThermCare', true, false) || [])
                 if (ThermCare && ThermCare.length > 0) {
                     if (ThermCare.includes("KMC")) {
                         await helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_KMC, period, 1)
@@ -41,7 +41,7 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                 }
                 const RESPSUP = Array.from(await helper.getValueFromKey(entry, 'RESPSUP', true, false) || [])
                 if (RESPSUP && RESPSUP.length > 0) {
-                    otherCount = otherCount + RESPSUP.filter(f => String(f).toLowerCase !== "none").length
+                    otherCount = otherCount + RESPSUP.filter(f => String(f).toLowerCase() !== "none").length
                 }
                 const PHOTOTHERAPY = await helper.getValueFromKey(entry, 'PHOTOTHERAPY', false, false)
                 if (PHOTOTHERAPY === "Yes") {
@@ -59,14 +59,14 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                 ) : []
                 otherCount = otherCount + filterMedsGiven.length
 
-                const FeedsAdm = Array.from(await helper.getValueFromKey(entry, 'FeedsAdm', true, false))
+                const FeedsAdm = Array.from(await helper.getValueFromKey(entry, 'FeedsAdm', true, false) || [])
 
                 if (FeedsAdm && FeedsAdm.length > 0) {
                     otherCount = otherCount + FeedsAdm.filter(f=>String(f).toLowerCase()!=="none" && f !=="BF").length
                 }
                 await helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_OTHER, period, otherCount)
 
-                const Resus = Array.from(await helper.getValueFromKey(entry, 'Resus', true, false))
+                const Resus = Array.from(await helper.getValueFromKey(entry, 'Resus', true, false) || [])
                 if(Resus && Resus.length>0) {
                 
                     await helper.updateValues(mapper.RHD_MAT_NEWBORN_COMPLICATIONS_MNGT_RESC, period, Resus.filter(r=>String(r).toLowerCase()!=="none" && String(r).toLowerCase()!="unk").length)
