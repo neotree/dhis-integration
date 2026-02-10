@@ -27,7 +27,7 @@ const getValueFromKey = require("./query_helper").getValueFromKey
 const updateDHISSyncStatus = require("./query_helper").updateDHISSyncStatus
 const updateDhisSyncDB = require("./query_helper").updateDhisSyncDB
 const getDHISSyncData = require("./query_helper").getDHISSyncData
-const updateDHISAggregateStatus = require("./query_helper").updateDHISAggregateStatus
+const updateDHISAggregateStatusWithSuccess = require("./query_helper").updateDHISAggregateStatusWithSuccess
 const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").aggregateRoutineCareDischarge
 
 
@@ -94,7 +94,7 @@ async function aggregateAllData() {
     if (data && Array.isArray(data) && data.length > 0) {
       const url = `${config.DHIS_HOST}/api/dataValueSets`;
       var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
-  
+
       for (const d of data) {
         let body = {
           dataSet: dataSet,
@@ -110,19 +110,34 @@ async function aggregateAllData() {
         reqOpts.headers = { Authorization: auth };
         reqOpts.headers["Content-Type"] = "application/json";
         reqOpts.body = JSON.stringify({ ...body });
-        reqOpts.timeout = 300000; 
+        reqOpts.timeout = 300000;
 
-        fetch(url, {
-          method: "POST",
-          ...reqOpts,
-        })
-          .then((res) => res.json())
-          .then(async (res) => {
-           await updateDHISAggregateStatus(d.id,'SUCCESS','N/A')
-          })
-          .catch(async (err) => {
-          await updateDHISAggregateStatus(d.id,'FAILED',err.message)
-          })
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            ...reqOpts,
+          });
+
+          // Extract error message from response
+          let errorMsg = 'N/A';
+          if (!response.ok) {
+            try {
+              const responseData = await response.json();
+              errorMsg = responseData?.message || responseData?.error?.message || JSON.stringify(responseData);
+            } catch {
+              errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+            }
+            await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
+          } else {
+            // Success response
+            await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', 'N/A');
+          }
+        } catch (err) {
+          // Capture detailed error information
+          const errorMsg = err?.message || String(err) || 'Unknown error occurred';
+          const detailedError = `${errorMsg}${err?.code ? ` (${err.code})` : ''}`;
+          await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', detailedError);
+        }
       }
     }
   }

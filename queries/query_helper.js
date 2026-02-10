@@ -32,10 +32,10 @@ async function getUnsyncedData() {
 }
 
 async function getDHISSyncData(failed) {
- 
-  let query = `SELECT id,value,element,period,category FROM public.dhis_aggregate`
+
+  let query = `SELECT id,value,element,period,category FROM public.dhis_aggregate WHERE value_changed=TRUE`
   if(failed){
-    query=`SELECT id,value,element,period,category FROM public.dhis_aggregate where status='FAILED'`
+    query=`SELECT id,value,element,period,category FROM public.dhis_aggregate WHERE status='FAILED'`
   }
 
   return await pool.query(query)
@@ -120,8 +120,10 @@ async function updateDhisSyncDB() {
       category VARCHAR (255),
       last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'Africa/Johannesburg'),
       last_attempt TIMESTAMP WITHOUT TIME ZONE,
+      last_success_date TIMESTAMP WITHOUT TIME ZONE,
       status VARCHAR (255),
-      error_msg VARCHAR (255)
+      error_msg VARCHAR (255),
+      value_changed BOOLEAN DEFAULT FALSE
    )`).catch(e => {
       console.log("CREATE DHIS AGGREGATE TABLE ERROR", e)
     })
@@ -159,8 +161,29 @@ async function updateDHISAggregateStatus(id,status,msg) {
 
 async function updateValues(mapper, period, value) {
   await seedZeroesForPeriod(period);
-  await pool.query(`UPDATE public.dhis_aggregate SET value=value+${value},last_update = now() at time zone 'Africa/Johannesburg' 
-      where element='${mapper['element']}' and category='${mapper['categoryOptionCombo']}' and period='${period}'`);
+
+  // Get current value before update
+  const currentResult = await pool.query(`
+    SELECT value FROM public.dhis_aggregate
+    WHERE element='${mapper['element']}'
+    AND category='${mapper['categoryOptionCombo']}'
+    AND period='${period}'
+  `);
+
+  const currentValue = currentResult.rows && currentResult.rows.length > 0 ? currentResult.rows[0].value : 0;
+  const newValue = currentValue + value;
+  const valueHasChanged = currentValue !== newValue;
+
+  // Update value and set value_changed flag only if value actually changed
+  await pool.query(`
+    UPDATE public.dhis_aggregate
+    SET value=${newValue},
+        last_update = now() at time zone 'Africa/Johannesburg',
+        value_changed=${valueHasChanged}
+    WHERE element='${mapper['element']}'
+    AND category='${mapper['categoryOptionCombo']}'
+    AND period='${period}'
+  `);
 }
 
 // USE THIS FUNCTION TO SET ZERO VALUES TO ALL DATA ELEMENTS ON ENCOUNTER OF A NEW PERIOD
@@ -185,6 +208,26 @@ async function seedZeroesForPeriod(period) {
 }
 
 
+async function updateDHISAggregateStatusWithSuccess(id, status, msg) {
+  if (id) {
+    if (status === 'SUCCESS') {
+      await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${msg}',
+        last_attempt=now() at time zone 'Africa/Johannesburg',
+        last_success_date=now() at time zone 'Africa/Johannesburg',
+        value_changed=FALSE WHERE id=${id}`);
+    } else {
+      await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${msg}',
+        last_attempt=now() at time zone 'Africa/Johannesburg' WHERE id=${id}`);
+    }
+  }
+}
+
+async function resetValueChangedFlag(id) {
+  if (id) {
+    await pool.query(`UPDATE public.dhis_aggregate SET value_changed=FALSE WHERE id=${id}`);
+  }
+}
+
 module.exports = {
   getUnsyncedData, updateValues,
   getValueFromKey, getMatched,
@@ -192,5 +235,7 @@ module.exports = {
   getDHISSyncData, updateDHISSyncStatus,
   updateDhisSyncDB,
   seedZeroesForPeriod,
-  updateDHISAggregateStatus
+  updateDHISAggregateStatus,
+  updateDHISAggregateStatusWithSuccess,
+  resetValueChangedFlag
 }
