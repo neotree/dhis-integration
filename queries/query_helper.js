@@ -236,6 +236,12 @@ async function updateDHISAggregateStatusWithSuccess(id, status, msg) {
   }
 }
 
+async function updateLastAttemptTimestamp(id) {
+  if (id) {
+    await pool.query(`UPDATE public.dhis_aggregate SET last_attempt=now() at time zone 'Africa/Johannesburg' WHERE id=${id}`);
+  }
+}
+
 async function resetValueChangedFlag(id) {
   if (id) {
     await pool.query(`UPDATE public.dhis_aggregate SET value_changed=FALSE WHERE id=${id}`);
@@ -251,5 +257,6 @@ module.exports = {
   seedZeroesForPeriod,
   updateDHISAggregateStatus,
   updateDHISAggregateStatusWithSuccess,
+  updateLastAttemptTimestamp,
   resetValueChangedFlag
 }

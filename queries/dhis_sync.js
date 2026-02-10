@@ -29,6 +29,7 @@ const updateDHISSyncStatus = require("./query_helper").updateDHISSyncStatus
 const updateDhisSyncDB = require("./query_helper").updateDhisSyncDB
 const getDHISSyncData = require("./query_helper").getDHISSyncData
 const updateDHISAggregateStatusWithSuccess = require("./query_helper").updateDHISAggregateStatusWithSuccess
+const updateLastAttemptTimestamp = require("./query_helper").updateLastAttemptTimestamp
 const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").aggregateRoutineCareDischarge
 
 
@@ -181,7 +182,9 @@ async function aggregateAllData() {
 
               if (isRetryable && retryCount < maxRetries) {
                 retryCount++;
-                logWarning(`Connection error on element ${d.element}, retrying (${retryCount}/${maxRetries})`, errorMsg);
+                // Update last_attempt timestamp for each retry attempt
+                await updateLastAttemptTimestamp(d.id);
+                logWarning(`RETRY ATTEMPT for element ${d.element} (Attempt ${retryCount}/${maxRetries})`, errorMsg);
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
               } else {
