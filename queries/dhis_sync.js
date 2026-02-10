@@ -132,42 +132,66 @@ async function aggregateAllData() {
             }],
           };
           let reqOpts = {};
-          reqOpts.headers = { Authorization: auth };
-          reqOpts.headers["Content-Type"] = "application/json";
+          reqOpts.headers = {
+            Authorization: auth,
+            "Content-Type": "application/json",
+            "Connection": "keep-alive"
+          };
           reqOpts.body = JSON.stringify({ ...body });
-          reqOpts.timeout = 300000;
+          reqOpts.timeout = 60000; // 60 seconds timeout
+          // Connection settings to prevent socket hang up
+          reqOpts.keepalive = true;
+          reqOpts.keepaliveTimeout = 30000;
 
-          try {
-            const response = await fetch(url, {
-              method: "POST",
-              ...reqOpts,
-            });
+          let retryCount = 0;
+          const maxRetries = 2;
+          let lastError = null;
 
-            // Extract error message from response
-            let errorMsg = 'N/A';
-            if (!response.ok) {
-              try {
-                const responseData = await response.json();
-                errorMsg = responseData?.message || responseData?.error?.message || JSON.stringify(responseData);
-              } catch {
-                errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+          while (retryCount <= maxRetries) {
+            try {
+              const response = await fetch(url, {
+                method: "POST",
+                ...reqOpts,
+              });
+
+              // Extract error message from response
+              let errorMsg = 'N/A';
+              if (!response.ok) {
+                try {
+                  const responseData = await response.json();
+                  errorMsg = responseData?.message || responseData?.error?.message || JSON.stringify(responseData);
+                } catch {
+                  errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                }
+                await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
+                logWarning(`DHIS2 sync FAILED for element ${d.element} (Period: ${d.period})`, errorMsg);
+                failCount++;
+              } else {
+                // Success response
+                await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', 'N/A');
+                logSuccess(`DHIS2 sync SUCCESS for element ${d.element} (Period: ${d.period}, Value: ${d.value})`);
+                successCount++;
               }
-              await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
-              logWarning(`DHIS2 sync FAILED for element ${d.element} (Period: ${d.period})`, errorMsg);
-              failCount++;
-            } else {
-              // Success response
-              await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', 'N/A');
-              logSuccess(`DHIS2 sync SUCCESS for element ${d.element} (Period: ${d.period}, Value: ${d.value})`);
-              successCount++;
+              break; // Exit retry loop on success or HTTP error
+            } catch (err) {
+              // Capture detailed error information
+              lastError = err;
+              const errorMsg = err?.message || String(err) || 'Unknown error occurred';
+              const isRetryable = errorMsg.includes('socket hang up') || errorMsg.includes('ECONNRESET') || errorMsg.includes('ETIMEDOUT');
+
+              if (isRetryable && retryCount < maxRetries) {
+                retryCount++;
+                logWarning(`Connection error on element ${d.element}, retrying (${retryCount}/${maxRetries})`, errorMsg);
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+              } else {
+                const detailedError = `${errorMsg}${err?.code ? ` (${err.code})` : ''}`;
+                await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', detailedError);
+                logError(`DHIS2 sync ERROR for element ${d.element} (Period: ${d.period})`, detailedError);
+                failCount++;
+                break; // Exit retry loop
+              }
             }
-          } catch (err) {
-            // Capture detailed error information
-            const errorMsg = err?.message || String(err) || 'Unknown error occurred';
-            const detailedError = `${errorMsg}${err?.code ? ` (${err.code})` : ''}`;
-            await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', detailedError);
-            logError(`DHIS2 sync ERROR for element ${d.element} (Period: ${d.period})`, detailedError);
-            failCount++;
           }
         }
 
