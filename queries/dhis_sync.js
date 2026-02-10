@@ -1,5 +1,6 @@
 const config = require("../config/dev");
 const fetch = require("cross-fetch");
+const { logError, logInfo, logSuccess, logWarning, clearOldLogs } = require("../helper/logger");
 const aggregateArt = require("./art").aggregateArt
 const aggregateBreastFeeding = require("./breast_feeding").aggregateBreastFeeding
 const aggregateDeliveryInAdmission = require("./delivery_admission").aggregateDeliveryInAdmission
@@ -32,28 +33,34 @@ const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").
 
 
 async function aggregateAllData() {
+    try {
+      logInfo("Starting data aggregation process");
+      clearOldLogs(5000); // Clear logs if they exceed 5000 lines
 
-    await updateDhisSyncDB();
-    const data = await getUnsyncedData();
-    if (Array.isArray(data) && data.length > 0) {
-      for (const e of data) {
-        if (e.scriptid === config.ADMISSIONS) {
-          const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
-          if (admissionDate) {
-            const period = getReportingPeriod(admissionDate)
-            if (period != null) {
-                await aggregateDeliveryInAdmission(e, period)
-                await aggregateNewBornComplicationsInAdmission(e, period)
-                await aggregateRoutineCareAdmission(e, period)
-                await aggregateTEOAdmission(e, period)
-  
+      await updateDhisSyncDB();
+      const data = await getUnsyncedData();
+
+      if (Array.isArray(data) && data.length > 0) {
+        logInfo(`Found ${data.length} unsynced records to process`);
+
+        for (const e of data) {
+          try {
+            if (e.scriptid === config.ADMISSIONS) {
+              const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
+              if (admissionDate) {
+                const period = getReportingPeriod(admissionDate)
+                if (period != null) {
+                    await aggregateDeliveryInAdmission(e, period)
+                    await aggregateNewBornComplicationsInAdmission(e, period)
+                    await aggregateRoutineCareAdmission(e, period)
+                    await aggregateTEOAdmission(e, period)
+                    logInfo(`Aggregated ADMISSIONS record (UID: ${e.data?.uid}, Period: ${period})`);
+                }
               }
-             }
-            }  
-             else if(e.scriptid === config.MATERNALS) {
+            }
+            else if(e.scriptid === config.MATERNALS) {
               const admissionDate = getValueFromKey(e, "DateAdmission", false, false)
               if (admissionDate) {
-              
                 const period = getReportingPeriod(admissionDate)
                 await aggregateArt(e, period);
                 await aggregateBreastFeeding(e, period);
@@ -70,75 +77,112 @@ async function aggregateAllData() {
                 await aggregateSingleTwinsTriplets(e, period)
                 await aggregateStaffMaternity(e, period)
                 await aggregateVitA(e, period)
-  
+                logInfo(`Aggregated MATERNALS record (UID: ${e.data?.uid}, Period: ${period})`);
               }
-  
             }
-           else if (e.scriptid === config.DISCHARGE) {
-          await aggregateNewBornComplicationsMngtDischarge(e)
-          await aggregatePMTCTDischarge(e)
-          await aggregateRoutineCareDischarge(e)
-  
+            else if (e.scriptid === config.DISCHARGE) {
+              await aggregateNewBornComplicationsMngtDischarge(e)
+              await aggregatePMTCTDischarge(e)
+              await aggregateRoutineCareDischarge(e)
+              logInfo(`Aggregated DISCHARGE record (UID: ${e.data?.uid})`);
+            }
+
+            await updateDHISSyncStatus(e.id)
+          } catch (err) {
+            logError(`Error aggregating record (ID: ${e.id})`, err.message);
+          }
         }
-         await updateDHISSyncStatus(e.id)
+        logSuccess(`Data aggregation completed for ${data.length} records`);
+      } else {
+        logInfo("No unsynced records found");
       }
+    } catch (err) {
+      logError("Fatal error in aggregateAllData", err.message);
+      throw err;
     }
   }
 
 
   async function syncToDhis(failed) {
-    //GET ALL THE DATA
-    const data = await getDHISSyncData(failed)
-    const orgUnit = config.DHIS_ORGUNIT
-    const dataSet = config.DHIS_DATASET
-    if (data && Array.isArray(data) && data.length > 0) {
-      const url = `${config.DHIS_HOST}/api/dataValueSets`;
-      var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
+    try {
+      const syncType = failed ? 'FAILED_RETRY' : 'NORMAL';
+      logInfo(`Starting DHIS2 sync (Type: ${syncType})`);
 
-      for (const d of data) {
-        let body = {
-          dataSet: dataSet,
-          period: d.period,
-          dataValues: [{
-            dataElement: d.element,
-            value: d.value,
-            orgUnit: orgUnit,
-            categoryOptionCombo: d.category
-          }],
-        };
-        let reqOpts = {};
-        reqOpts.headers = { Authorization: auth };
-        reqOpts.headers["Content-Type"] = "application/json";
-        reqOpts.body = JSON.stringify({ ...body });
-        reqOpts.timeout = 300000;
+      const data = await getDHISSyncData(failed)
+      const orgUnit = config.DHIS_ORGUNIT
+      const dataSet = config.DHIS_DATASET
 
-        try {
-          const response = await fetch(url, {
-            method: "POST",
-            ...reqOpts,
-          });
+      if (data && Array.isArray(data) && data.length > 0) {
+        logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
+        const url = `${config.DHIS_HOST}/api/dataValueSets`;
+        var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
 
-          // Extract error message from response
-          let errorMsg = 'N/A';
-          if (!response.ok) {
-            try {
-              const responseData = await response.json();
-              errorMsg = responseData?.message || responseData?.error?.message || JSON.stringify(responseData);
-            } catch {
-              errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const d of data) {
+          let body = {
+            dataSet: dataSet,
+            period: d.period,
+            dataValues: [{
+              dataElement: d.element,
+              value: d.value,
+              orgUnit: orgUnit,
+              categoryOptionCombo: d.category
+            }],
+          };
+          let reqOpts = {};
+          reqOpts.headers = { Authorization: auth };
+          reqOpts.headers["Content-Type"] = "application/json";
+          reqOpts.body = JSON.stringify({ ...body });
+          reqOpts.timeout = 300000;
+
+          try {
+            const response = await fetch(url, {
+              method: "POST",
+              ...reqOpts,
+            });
+
+            // Extract error message from response
+            let errorMsg = 'N/A';
+            if (!response.ok) {
+              try {
+                const responseData = await response.json();
+                errorMsg = responseData?.message || responseData?.error?.message || JSON.stringify(responseData);
+              } catch {
+                errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+              }
+              await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
+              logWarning(`DHIS2 sync FAILED for element ${d.element} (Period: ${d.period})`, errorMsg);
+              failCount++;
+            } else {
+              // Success response
+              await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', 'N/A');
+              logSuccess(`DHIS2 sync SUCCESS for element ${d.element} (Period: ${d.period}, Value: ${d.value})`);
+              successCount++;
             }
-            await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
-          } else {
-            // Success response
-            await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', 'N/A');
+          } catch (err) {
+            // Capture detailed error information
+            const errorMsg = err?.message || String(err) || 'Unknown error occurred';
+            const detailedError = `${errorMsg}${err?.code ? ` (${err.code})` : ''}`;
+            await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', detailedError);
+            logError(`DHIS2 sync ERROR for element ${d.element} (Period: ${d.period})`, detailedError);
+            failCount++;
           }
-        } catch (err) {
-          // Capture detailed error information
-          const errorMsg = err?.message || String(err) || 'Unknown error occurred';
-          const detailedError = `${errorMsg}${err?.code ? ` (${err.code})` : ''}`;
-          await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', detailedError);
         }
+
+        logSuccess(`DHIS2 sync completed`, {
+          type: syncType,
+          total: data.length,
+          success: successCount,
+          failed: failCount
+        });
+      } else {
+        logInfo(`No data to sync (Type: ${syncType})`);
       }
+    } catch (err) {
+      logError("Fatal error in syncToDhis", err.message);
+      throw err;
     }
   }
 

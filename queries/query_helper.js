@@ -1,7 +1,8 @@
 
 const { Pool } = require('pg');
 const config = require("../config/dev");
-const mapper = require("./mapper")
+const mapper = require("./mapper");
+const { logError, logInfo } = require("../helper/logger");
 
 const connectionString = `postgresql://${config.DB_USER}:${config.DB_PW}@${config.DB_HOST}:${config.DB_PORT}/${config.DB}`;
 
@@ -103,47 +104,60 @@ function getUid(entry) {
   return entry?.data?.["uid"]
 }
 async function updateDhisSyncDB() {
-  //CREATE SYNC TABLE
-  await pool.query(`CREATE TABLE IF NOT EXISTS public.dhis_sync (
-      id serial PRIMARY KEY,
-      data JSONB,
-      uid VARCHAR (255),
-      scriptid VARCHAR (255),
-      ingested_at TIMESTAMP WITHOUT TIME ZONE,
-      synced BOOLEAN NOT NULL DEFAULT FALSE
-   )`).then(async res => {
-    await pool.query(`CREATE TABLE IF NOT EXISTS public.dhis_aggregate (
-      id serial PRIMARY KEY,
-      value INT DEFAULT 0,
-      element VARCHAR (255),
-      period  VARCHAR (255),
-      category VARCHAR (255),
-      last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'Africa/Johannesburg'),
-      last_attempt TIMESTAMP WITHOUT TIME ZONE,
-      last_success_date TIMESTAMP WITHOUT TIME ZONE,
-      status VARCHAR (255),
-      error_msg VARCHAR (255),
-      value_changed BOOLEAN DEFAULT FALSE
-   )`).catch(e => {
-      console.log("CREATE DHIS AGGREGATE TABLE ERROR", e)
+  try {
+    //CREATE SYNC TABLE
+    await pool.query(`CREATE TABLE IF NOT EXISTS public.dhis_sync (
+        id serial PRIMARY KEY,
+        data JSONB,
+        uid VARCHAR (255),
+        scriptid VARCHAR (255),
+        ingested_at TIMESTAMP WITHOUT TIME ZONE,
+        synced BOOLEAN NOT NULL DEFAULT FALSE
+     )`).then(async () => {
+      logInfo("dhis_sync table verified/created");
+      await pool.query(`CREATE TABLE IF NOT EXISTS public.dhis_aggregate (
+        id serial PRIMARY KEY,
+        value INT DEFAULT 0,
+        element VARCHAR (255),
+        period  VARCHAR (255),
+        category VARCHAR (255),
+        last_update TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'Africa/Johannesburg'),
+        last_attempt TIMESTAMP WITHOUT TIME ZONE,
+        last_success_date TIMESTAMP WITHOUT TIME ZONE,
+        status VARCHAR (255),
+        error_msg VARCHAR (255),
+        value_changed BOOLEAN DEFAULT FALSE
+     )`).then(() => {
+        logInfo("dhis_aggregate table verified/created");
+      }).catch(e => {
+        logError("CREATE DHIS AGGREGATE TABLE ERROR", e)
+      })
+    }).catch(err => {
+      logError("CREATE DHIS SYNC TABLE ERROR", err)
     })
-  }).catch(err => {
-    console.log("CREATE DHIS SYNC ERROR==", err)
-  })
-  const scripts = [config.ADMISSIONS, config.DISCHARGE, config.MATERNALS];
-  let sync_start_date = config.START_DATE
-  // DEDUPLICATE AND SYNC DATA
-  for (const s of scripts) {
-    //TODO Take Data From Cleaned Sessions
-    let query = `
-      INSERT INTO public.dhis_sync (data,uid,scriptid,ingested_at)
-      SELECT DISTINCT ON (uid,scriptid) data::jsonb,uid,scriptid,ingested_at
-      FROM public.sessions
-      WHERE scriptid ='${s}'
-      AND ((uid IN ('D06F-0136','D06F-0137','D06F-0138','D06F-0139','D06F-0140','D06F-0141','D06F-0142'))
-      OR (ingested_at >= '${sync_start_date}'))
-      AND ((uid,scriptid) not in (select uid,scriptid from public.dhis_sync))`
-    await pool.query(query)
+
+    const scripts = [config.ADMISSIONS, config.DISCHARGE, config.MATERNALS];
+    let sync_start_date = config.START_DATE
+    // DEDUPLICATE AND SYNC DATA
+    for (const s of scripts) {
+      //TODO Take Data From Cleaned Sessions
+      let query = `
+        INSERT INTO public.dhis_sync (data,uid,scriptid,ingested_at)
+        SELECT DISTINCT ON (uid,scriptid) data::jsonb,uid,scriptid,ingested_at
+        FROM public.sessions
+        WHERE scriptid ='${s}'
+        AND ((uid IN ('D06F-0136','D06F-0137','D06F-0138','D06F-0139','D06F-0140','D06F-0141','D06F-0142'))
+        OR (ingested_at >= '${sync_start_date}'))
+        AND ((uid,scriptid) not in (select uid,scriptid from public.dhis_sync))`
+      await pool.query(query).catch(err => {
+        if (!String(err).includes("does not exist")) {
+          logError(`Error syncing data for script ${s}`, err.message);
+        }
+      })
+    }
+    logInfo("Database sync completed successfully");
+  } catch (err) {
+    logError("Fatal error in updateDhisSyncDB", err.message);
   }
 }
 
