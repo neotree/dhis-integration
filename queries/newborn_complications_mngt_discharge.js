@@ -39,7 +39,7 @@ async function aggregateNewBornComplicationsMngtDischarge(entry) {
                 if (filteredThemCare.length > 0) {
                     otherCount = filteredThemCare.length;
                 }
-                const RESPSUP = Array.from(await helper.getValueFromKey(entry, 'RESPSUP', true, false))
+                const RESPSUP = Array.from(await helper.getValueFromKey(entry, 'RESPSUP', true, false) || [])
                 if (RESPSUP && RESPSUP.length > 0) {
                     otherCount = otherCount + RESPSUP.filter(f => String(f).toLowerCase !== "none").length
                 }
