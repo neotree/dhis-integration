@@ -4,19 +4,17 @@ const dhisSync = require("./dhis_sync")
   
 
 const syncDhisAggregate = async (failed) => {
-  try{ 
+  try{
     if(failed){
       await dhisSync.syncToDhis(true);
     }else{
- await dhisSync.aggregateAllData();
- await dhisSync.syncToDhis(false);
+      await dhisSync.aggregateAllData();
+      await dhisSync.syncToDhis(false);
     }
-
-}catch(e){
-  console.log(e)
-}
-
-  
+  } catch(e){
+    console.error("Error in syncDhisAggregate:", e);
+    throw e;
+  }
 }
 
 
