@@ -214,8 +214,8 @@ async function seedZeroesForPeriod(period) {
     })
   if (!periodSeeded) {
     for (const key in mapper) {
-      await pool.query(`INSERT INTO public.dhis_aggregate(element,category,period,value)
-        VALUES('${mapper[key]['element']}','${mapper[key]['categoryOptionCombo']}','${period}',0)`);
+      await pool.query(`INSERT INTO public.dhis_aggregate(element,category,period,value,status,last_attempt)
+        VALUES('${mapper[key]['element']}','${mapper[key]['categoryOptionCombo']}','${period}',0,'PENDING',now() at time zone 'Africa/Johannesburg')`);
 
     }
   }

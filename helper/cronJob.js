@@ -3,7 +3,7 @@ const agregate = require("../queries/dhis_aggregate");
 
 function updateSyncDBMorning() {
   cron.schedule(
-    "*/5 * * * *",
+    "00 06 * * *",
     async () => {
       await agregate.syncDhisAggregate(false)
     },
