@@ -263,15 +263,21 @@ async function updateDHISAggregateStatus(id,status,msg) {
 async function ensureAggregateRow(metric, period) {
   await pool.query(`
     INSERT INTO public.dhis_aggregate(element, category, period, value, status, last_attempt, value_changed)
-    SELECT $1, $2, $3, 0, 'PENDING', now() at time zone 'Africa/Johannesburg', FALSE
+    SELECT candidate.element, candidate.category, candidate.period, 0, 'PENDING', now() at time zone 'Africa/Johannesburg', FALSE
+    FROM (
+      SELECT
+        $1::varchar AS element,
+        $2::varchar AS category,
+        $3::varchar AS period
+    ) candidate
     WHERE NOT EXISTS (
       SELECT 1
-      FROM public.dhis_aggregate
-      WHERE element = $1
-        AND category = $2
-        AND period = $3
+      FROM public.dhis_aggregate existing
+      WHERE existing.element = candidate.element
+        AND existing.category = candidate.category
+        AND existing.period = candidate.period
     )
-  `, [metric.element, metric.categoryOptionCombo, period]);
+  `, [String(metric.element), String(metric.categoryOptionCombo), String(period)]);
 }
 
 async function updateValues(mapper, period, value) {
@@ -281,12 +287,12 @@ async function updateValues(mapper, period, value) {
   // Get current value before update
   const currentResult = await pool.query(`
     SELECT value FROM public.dhis_aggregate
-    WHERE element=$1
-    AND category=$2
-    AND period=$3
+    WHERE element=$1::varchar
+    AND category=$2::varchar
+    AND period=$3::varchar
     ORDER BY id ASC
     LIMIT 1
-  `, [mapper.element, mapper.categoryOptionCombo, period]);
+  `, [String(mapper.element), String(mapper.categoryOptionCombo), String(period)]);
 
   const currentValue = currentResult.rows && currentResult.rows.length > 0 ? currentResult.rows[0].value : 0;
   const newValue = currentValue + value;
@@ -295,13 +301,13 @@ async function updateValues(mapper, period, value) {
   // Update value and set value_changed flag only if value actually changed
   const updateResult = await pool.query(`
     UPDATE public.dhis_aggregate
-    SET value=$1,
+    SET value=$1::int,
         last_update = now() at time zone 'Africa/Johannesburg',
-        value_changed=$2
-    WHERE element=$3
-    AND category=$4
-    AND period=$5
-  `, [newValue, valueHasChanged, mapper.element, mapper.categoryOptionCombo, period]);
+        value_changed=$2::boolean
+    WHERE element=$3::varchar
+    AND category=$4::varchar
+    AND period=$5::varchar
+  `, [newValue, valueHasChanged, String(mapper.element), String(mapper.categoryOptionCombo), String(period)]);
 
   if (!updateResult.rowCount) {
     const errorDetails = {
