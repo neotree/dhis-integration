@@ -260,31 +260,61 @@ async function updateDHISAggregateStatus(id,status,msg) {
   }
 }
 
+async function ensureAggregateRow(metric, period) {
+  await pool.query(`
+    INSERT INTO public.dhis_aggregate(element, category, period, value, status, last_attempt, value_changed)
+    SELECT $1, $2, $3, 0, 'PENDING', now() at time zone 'Africa/Johannesburg', FALSE
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM public.dhis_aggregate
+      WHERE element = $1
+        AND category = $2
+        AND period = $3
+    )
+  `, [metric.element, metric.categoryOptionCombo, period]);
+}
+
 async function updateValues(mapper, period, value) {
   await seedZeroesForPeriod(period);
+  await ensureAggregateRow(mapper, period);
 
   // Get current value before update
   const currentResult = await pool.query(`
     SELECT value FROM public.dhis_aggregate
-    WHERE element='${mapper['element']}'
-    AND category='${mapper['categoryOptionCombo']}'
-    AND period='${period}'
-  `);
+    WHERE element=$1
+    AND category=$2
+    AND period=$3
+    ORDER BY id ASC
+    LIMIT 1
+  `, [mapper.element, mapper.categoryOptionCombo, period]);
 
   const currentValue = currentResult.rows && currentResult.rows.length > 0 ? currentResult.rows[0].value : 0;
   const newValue = currentValue + value;
   const valueHasChanged = currentValue !== newValue;
 
   // Update value and set value_changed flag only if value actually changed
-  await pool.query(`
+  const updateResult = await pool.query(`
     UPDATE public.dhis_aggregate
-    SET value=${newValue},
+    SET value=$1,
         last_update = now() at time zone 'Africa/Johannesburg',
-        value_changed=${valueHasChanged}
-    WHERE element='${mapper['element']}'
-    AND category='${mapper['categoryOptionCombo']}'
-    AND period='${period}'
-  `);
+        value_changed=$2
+    WHERE element=$3
+    AND category=$4
+    AND period=$5
+  `, [newValue, valueHasChanged, mapper.element, mapper.categoryOptionCombo, period]);
+
+  if (!updateResult.rowCount) {
+    const errorDetails = {
+      element: mapper.element,
+      category: mapper.categoryOptionCombo,
+      period,
+      currentValue,
+      attemptedValue: value,
+      newValue,
+    };
+    logError("No dhis_aggregate rows were updated", errorDetails);
+    throw new Error(`No dhis_aggregate rows were updated for ${mapper.element}/${mapper.categoryOptionCombo}/${period}`);
+  }
 }
 
 // USE THIS FUNCTION TO SET ZERO VALUES TO ALL DATA ELEMENTS ON ENCOUNTER OF A NEW PERIOD
