@@ -53,7 +53,7 @@ function updateSyncDBNight() {
 }
 function updateSyncFailed() {
   cron.schedule(
-    "*/30 * * * *",
+    "*/5 * * * *",
     async () => {
       await agregate.syncDhisAggregate(true)
     },
