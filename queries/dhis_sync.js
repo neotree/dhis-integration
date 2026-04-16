@@ -112,6 +112,8 @@ async function aggregateAllData() {
       const data = await getDHISSyncData(failed)
       const orgUnit = config.DHIS_ORGUNIT
       const dataSet = config.DHIS_DATASET
+      logInfo(`=======ORG UNIT (Type: ${orgUnit})`);
+      logInfo(`=======ORG DSET (Type: ${dataSet})`);
 
       if (data && Array.isArray(data) && data.length > 0) {
         logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
