@@ -9,10 +9,30 @@ if (!fs.existsSync(logsDir)) {
 
 const errorLogPath = path.join(logsDir, 'error.log');
 const infoLogPath = path.join(logsDir, 'info.log');
+const logTimeZone = process.env.LOG_TIMEZONE || process.env.TZ || 'Africa/Harare';
 
 // Format timestamp
 function getTimestamp() {
-  return new Date().toISOString();
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: logTimeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'shortOffset'
+  });
+
+  const parts = formatter.formatToParts(now).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  const offset = (parts.timeZoneName || '').replace('GMT', '');
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}${offset}[${logTimeZone}]`;
 }
 
 // Format log message
