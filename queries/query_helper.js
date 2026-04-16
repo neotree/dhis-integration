@@ -11,6 +11,12 @@ const pool = new Pool({
   connectionString: connectionString,
 })
 
+function sanitizeStatusMessage(msg) {
+  const normalized = String(msg ?? 'N/A');
+  const escaped = normalized.replace(/'/g, "''");
+  return escaped.length > 255 ? escaped.slice(0, 255) : escaped;
+}
+
 async function getUnsyncedData() {
   //SELECT DATA TO UPDATE
   return await pool.query(`SELECT id,scriptid, data FROM public.dhis_sync WHERE synced is false`)
@@ -168,7 +174,8 @@ async function updateDHISSyncStatus(entryId) {
 }
 async function updateDHISAggregateStatus(id,status,msg) {
   if (id) {
-   await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${msg}'
+   const safeMsg = sanitizeStatusMessage(msg);
+   await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${safeMsg}'
     ,last_attempt=now() at time zone 'Africa/Johannesburg'  WHERE id=${id}`);
   }
 }
@@ -224,13 +231,14 @@ async function seedZeroesForPeriod(period) {
 
 async function updateDHISAggregateStatusWithSuccess(id, status, msg) {
   if (id) {
+    const safeMsg = sanitizeStatusMessage(msg);
     if (status === 'SUCCESS') {
-      await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${msg}',
+      await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${safeMsg}',
         last_attempt=now() at time zone 'Africa/Johannesburg',
         last_success_date=now() at time zone 'Africa/Johannesburg',
         value_changed=FALSE WHERE id=${id}`);
     } else {
-      await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${msg}',
+      await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${safeMsg}',
         last_attempt=now() at time zone 'Africa/Johannesburg' WHERE id=${id}`);
     }
   }

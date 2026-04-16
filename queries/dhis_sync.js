@@ -32,6 +32,66 @@ const updateDHISAggregateStatusWithSuccess = require("./query_helper").updateDHI
 const updateLastAttemptTimestamp = require("./query_helper").updateLastAttemptTimestamp
 const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").aggregateRoutineCareDischarge
 
+function trimConfigValue(value) {
+  return typeof value === 'string' ? value.trim() : value;
+}
+
+function getDhisResponseMessage(response, responseData) {
+  if (responseData == null) {
+    return `HTTP ${response.status}: ${response.statusText}`;
+  }
+
+  if (typeof responseData === 'string') {
+    return responseData;
+  }
+
+  const conflicts = Array.isArray(responseData.conflicts)
+    ? responseData.conflicts.map(conflict => conflict?.value || conflict?.message).filter(Boolean)
+    : [];
+
+  const details = [
+    responseData.message,
+    responseData.description,
+    responseData.error?.message,
+    responseData.response?.message,
+    responseData.response?.description,
+    conflicts.length > 0 ? conflicts.join("; ") : null
+  ].filter(Boolean);
+
+  if (details.length > 0) {
+    return details.join(" | ");
+  }
+
+  return JSON.stringify(responseData);
+}
+
+function isDhisImportFailure(response, responseData) {
+  if (!response.ok) {
+    return true;
+  }
+
+  if (!responseData || typeof responseData !== 'object') {
+    return false;
+  }
+
+  const ignored = Number(responseData.importCount?.ignored || 0);
+  const hasConflicts = Array.isArray(responseData.conflicts) && responseData.conflicts.length > 0;
+  const status = typeof responseData.status === 'string' ? responseData.status.toUpperCase() : '';
+
+  return ignored > 0 || hasConflicts || status === 'ERROR';
+}
+
+async function parseDhisResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return await response.json();
+  }
+
+  const text = await response.text();
+  return text || null;
+}
+
 
 async function aggregateAllData() {
     try {
@@ -110,8 +170,15 @@ async function aggregateAllData() {
       logInfo(`Starting DHIS2 sync (Type: ${syncType})`);
 
       const data = await getDHISSyncData(failed)
-      const orgUnit = typeof config.DHIS_ORGUNIT === 'string' ? config.DHIS_ORGUNIT.trim() : config.DHIS_ORGUNIT
-      const dataSet = typeof config.DHIS_DATASET === 'string' ? config.DHIS_DATASET.trim() : config.DHIS_DATASET
+      const orgUnit = trimConfigValue(config.DHIS_ORGUNIT)
+      const dataSet = trimConfigValue(config.DHIS_DATASET)
+      const attributeOptionCombo = trimConfigValue(config.DHIS_ATTRIBUTE_OPTION_COMBO)
+
+      logInfo(`=======ORG UNIT (Type: ${orgUnit})`);
+      logInfo(`=======ORG DSET (Type: ${dataSet})`);
+      if (attributeOptionCombo) {
+        logInfo(`=======ORG AOC (Type: ${attributeOptionCombo})`);
+      }
      
       if (data && Array.isArray(data) && data.length > 0) {
         logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
@@ -126,11 +193,13 @@ async function aggregateAllData() {
             dataSet: dataSet,
             orgUnit: orgUnit,
             period: d.period,
+            ...(attributeOptionCombo ? { attributeOptionCombo } : {}),
             dataValues: [{
               dataElement: d.element,
               value: d.value,
               orgUnit: orgUnit,
-              categoryOptionCombo: d.category
+              categoryOptionCombo: d.category,
+              ...(attributeOptionCombo ? { attributeOptionCombo } : {})
             }],
           };
           let reqOpts = {};
@@ -147,7 +216,6 @@ async function aggregateAllData() {
 
           let retryCount = 0;
           const maxRetries = 2;
-          let lastError = null;
 
           while (retryCount <= maxRetries) {
             try {
@@ -156,31 +224,28 @@ async function aggregateAllData() {
                 ...reqOpts,
               });
 
-              // Extract error message from response
-              let errorMsg = 'N/A';
-              if (!response.ok) {
-                try {
-                  const responseData = await response.json();
-                  errorMsg = responseData?.message || responseData?.error?.message || JSON.stringify(responseData);
-                } catch {
-                  errorMsg = `HTTP ${response.status}: ${response.statusText}`;
-                }
+              const responseData = await parseDhisResponse(response);
+              const responseMsg = getDhisResponseMessage(response, responseData);
+
+              if (isDhisImportFailure(response, responseData)) {
+                const errorMsg = responseMsg || 'DHIS2 import failed';
                 await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
                 logWarning(
-                  `DHIS2 sync FAILED for element ${d.element} (Period: ${d.period}, Status: ${response.status}, OrgUnit: ${orgUnit}, DataSet: ${dataSet})`,
+                  `DHIS2 sync FAILED for element ${d.element} (Period: ${d.period}, Status: ${response.status}, OrgUnit: ${orgUnit}, DataSet: ${dataSet}, CategoryOptionCombo: ${d.category})`,
                   errorMsg
                 );
                 failCount++;
               } else {
-                // Success response
-                await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', 'N/A');
+                const successMsg = typeof responseData === 'object' && responseData?.status
+                  ? responseData.status
+                  : 'N/A';
+                await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', successMsg);
                 logSuccess(`DHIS2 sync SUCCESS for element ${d.element} (Period: ${d.period}, Value: ${d.value})`);
                 successCount++;
               }
               break; // Exit retry loop on success or HTTP error
             } catch (err) {
               // Capture detailed error information
-              lastError = err;
               const errorMsg = err?.message || String(err) || 'Unknown error occurred';
               const isRetryable = errorMsg.includes('socket hang up') || errorMsg.includes('ECONNRESET') || errorMsg.includes('ETIMEDOUT');
 
