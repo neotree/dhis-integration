@@ -114,14 +114,20 @@ async function aggregateAllData() {
       logInfo("Starting data aggregation process");
       clearOldLogs(5000); // Clear logs if they exceed 5000 lines
 
-      await updateDhisSyncDB();
+      const stagingSummary = await updateDhisSyncDB();
       const data = await getUnsyncedData();
 
       if (Array.isArray(data) && data.length > 0) {
         logInfo(`Found ${data.length} unsynced records to process`);
+        let aggregatedCount = 0;
+        let skippedCount = 0;
+        let failedCount = 0;
 
         for (const e of data) {
           try {
+            let aggregated = false;
+            let skipReason = null;
+
             if (e.scriptid === config.ADMISSIONS) {
               const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
               if (admissionDate) {
@@ -131,47 +137,80 @@ async function aggregateAllData() {
                     await aggregateNewBornComplicationsInAdmission(e, period)
                     await aggregateRoutineCareAdmission(e, period)
                     await aggregateTEOAdmission(e, period)
+                    aggregated = true;
                     logInfo(`Aggregated ADMISSIONS record (UID: ${e.data?.uid}, Period: ${period})`);
+                } else {
+                  skipReason = `Invalid reporting period from DateTimeAdmission: ${admissionDate}`;
                 }
+              } else {
+                skipReason = "Missing DateTimeAdmission";
               }
             }
             else if(e.scriptid === config.MATERNALS) {
               const admissionDate = getValueFromKey(e, "DateAdmission", false, false)
               if (admissionDate) {
                 const period = getReportingPeriod(admissionDate)
-                await aggregateArt(e, period);
-                await aggregateBreastFeeding(e, period);
-                await aggregateDeliveryInMaternity(e, period);
-                await aggregateEmergencyObstetric(e, period);
-                await aggregateHiv(e, period)
-                await aggregateMaternalOutcome(e, period)
-                await aggregateNewBornComplicationsInMaternity(e, period)
-                await aggregateObstetricComplications(e, period)
-                await aggregatePMTCTMaternity(e, period)
-                await aggregateRoutineCareMaternity(e, period)
-                await aggregateTEOMaternity(e, period)
-                await aggregateReferrals(e, period)
-                await aggregateSingleTwinsTriplets(e, period)
-                await aggregateStaffMaternity(e, period)
-                await aggregateVitA(e, period)
-                logInfo(`Aggregated MATERNALS record (UID: ${e.data?.uid}, Period: ${period})`);
+                if (period != null) {
+                  await aggregateArt(e, period);
+                  await aggregateBreastFeeding(e, period);
+                  await aggregateDeliveryInMaternity(e, period);
+                  await aggregateEmergencyObstetric(e, period);
+                  await aggregateHiv(e, period)
+                  await aggregateMaternalOutcome(e, period)
+                  await aggregateNewBornComplicationsInMaternity(e, period)
+                  await aggregateObstetricComplications(e, period)
+                  await aggregatePMTCTMaternity(e, period)
+                  await aggregateRoutineCareMaternity(e, period)
+                  await aggregateTEOMaternity(e, period)
+                  await aggregateReferrals(e, period)
+                  await aggregateSingleTwinsTriplets(e, period)
+                  await aggregateStaffMaternity(e, period)
+                  await aggregateVitA(e, period)
+                  aggregated = true;
+                  logInfo(`Aggregated MATERNALS record (UID: ${e.data?.uid}, Period: ${period})`);
+                } else {
+                  skipReason = `Invalid reporting period from DateAdmission: ${admissionDate}`;
+                }
+              } else {
+                skipReason = "Missing DateAdmission";
               }
             }
             else if (e.scriptid === config.DISCHARGE) {
               await aggregateNewBornComplicationsMngtDischarge(e)
               await aggregatePMTCTDischarge(e)
               await aggregateRoutineCareDischarge(e)
+              aggregated = true;
               logInfo(`Aggregated DISCHARGE record (UID: ${e.data?.uid})`);
+            } else {
+              skipReason = `Unrecognised scriptid ${e.scriptid}`;
+            }
+
+            if (aggregated) {
+              aggregatedCount++;
+            } else {
+              skippedCount++;
+              logWarning(`Skipping aggregation for record ID ${e.id}`, skipReason || 'No aggregation rule matched');
             }
 
             await updateDHISSyncStatus(e.id)
           } catch (err) {
+            failedCount++;
             logError(`Error aggregating record (ID: ${e.id})`, err.message);
           }
         }
-        logSuccess(`Data aggregation completed for ${data.length} records`);
+        logSuccess(`Data aggregation completed`, {
+          total: data.length,
+          aggregated: aggregatedCount,
+          skipped: skippedCount,
+          failed: failedCount,
+          newly_staged: stagingSummary?.inserted || 0,
+          pending_unsynced: stagingSummary?.pendingUnsynced || 0,
+        });
       } else {
-        logInfo("No unsynced records found");
+        logInfo("No unsynced records found", {
+          newly_staged: stagingSummary?.inserted || 0,
+          pending_unsynced: stagingSummary?.pendingUnsynced || 0,
+        });
       }
     } catch (err) {
       logError("Fatal error in aggregateAllData", err.message);
