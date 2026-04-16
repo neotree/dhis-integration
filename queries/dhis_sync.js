@@ -110,11 +110,9 @@ async function aggregateAllData() {
       logInfo(`Starting DHIS2 sync (Type: ${syncType})`);
 
       const data = await getDHISSyncData(failed)
-      const orgUnit = config.DHIS_ORGUNIT
-      const dataSet = config.DHIS_DATASET
-      logInfo(`=======ORG UNIT (Type: ${orgUnit})`);
-      logInfo(`=======ORG DSET (Type: ${dataSet})`);
-
+      const orgUnit = typeof config.DHIS_ORGUNIT === 'string' ? config.DHIS_ORGUNIT.trim() : config.DHIS_ORGUNIT
+      const dataSet = typeof config.DHIS_DATASET === 'string' ? config.DHIS_DATASET.trim() : config.DHIS_DATASET
+     
       if (data && Array.isArray(data) && data.length > 0) {
         logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
         const url = `${config.DHIS_HOST}/api/dataValueSets`;
@@ -126,6 +124,7 @@ async function aggregateAllData() {
         for (const d of data) {
           let body = {
             dataSet: dataSet,
+            orgUnit: orgUnit,
             period: d.period,
             dataValues: [{
               dataElement: d.element,
@@ -167,7 +166,10 @@ async function aggregateAllData() {
                   errorMsg = `HTTP ${response.status}: ${response.statusText}`;
                 }
                 await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
-                logWarning(`DHIS2 sync FAILED for element ${d.element} (Period: ${d.period})`, errorMsg);
+                logWarning(
+                  `DHIS2 sync FAILED for element ${d.element} (Period: ${d.period}, Status: ${response.status}, OrgUnit: ${orgUnit}, DataSet: ${dataSet})`,
+                  errorMsg
+                );
                 failCount++;
               } else {
                 // Success response
