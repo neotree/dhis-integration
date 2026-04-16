@@ -31,6 +31,8 @@ const getDHISSyncData = require("./query_helper").getDHISSyncData
 const updateDHISAggregateStatusWithSuccess = require("./query_helper").updateDHISAggregateStatusWithSuccess
 const updateLastAttemptTimestamp = require("./query_helper").updateLastAttemptTimestamp
 const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").aggregateRoutineCareDischarge
+const REQUEST_TIMEOUT_MS = 60000;
+let syncInProgress = false;
 
 function trimConfigValue(value) {
   return typeof value === 'string' ? value.trim() : value;
@@ -90,6 +92,20 @@ async function parseDhisResponse(response) {
 
   const text = await response.text();
   return text || null;
+}
+
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 
@@ -165,6 +181,15 @@ async function aggregateAllData() {
 
 
   async function syncToDhis(failed) {
+    if (syncInProgress) {
+      logWarning(`Skipping DHIS2 sync because another sync is still running`, {
+        type: failed ? 'FAILED_RETRY' : 'NORMAL'
+      });
+      return;
+    }
+
+    syncInProgress = true;
+
     try {
       const syncType = failed ? 'FAILED_RETRY' : 'NORMAL';
       logInfo(`Starting DHIS2 sync (Type: ${syncType})`);
@@ -188,7 +213,12 @@ async function aggregateAllData() {
         let successCount = 0;
         let failCount = 0;
 
-        for (const d of data) {
+        for (let index = 0; index < data.length; index++) {
+          const d = data[index];
+          if (index === 0 || (index + 1) % 25 === 0 || index === data.length - 1) {
+            logInfo(`DHIS2 sync progress ${index + 1}/${data.length} (Type: ${syncType})`);
+          }
+
           let body = {
             dataSet: dataSet,
             orgUnit: orgUnit,
@@ -205,24 +235,21 @@ async function aggregateAllData() {
           let reqOpts = {};
           reqOpts.headers = {
             Authorization: auth,
-            "Content-Type": "application/json",
-            "Connection": "keep-alive"
+            "Content-Type": "application/json"
           };
           reqOpts.body = JSON.stringify({ ...body });
-          reqOpts.timeout = 60000; // 60 seconds timeout
-          // Connection settings to prevent socket hang up
-          reqOpts.keepalive = true;
-          reqOpts.keepaliveTimeout = 30000;
 
           let retryCount = 0;
           const maxRetries = 2;
 
           while (retryCount <= maxRetries) {
             try {
-              const response = await fetch(url, {
+              await updateLastAttemptTimestamp(d.id);
+
+              const response = await fetchWithTimeout(url, {
                 method: "POST",
                 ...reqOpts,
-              });
+              }, REQUEST_TIMEOUT_MS);
 
               const responseData = await parseDhisResponse(response);
               const responseMsg = getDhisResponseMessage(response, responseData);
@@ -247,12 +274,14 @@ async function aggregateAllData() {
             } catch (err) {
               // Capture detailed error information
               const errorMsg = err?.message || String(err) || 'Unknown error occurred';
-              const isRetryable = errorMsg.includes('socket hang up') || errorMsg.includes('ECONNRESET') || errorMsg.includes('ETIMEDOUT');
+              const isRetryable = errorMsg.includes('socket hang up')
+                || errorMsg.includes('ECONNRESET')
+                || errorMsg.includes('ETIMEDOUT')
+                || errorMsg.includes('aborted')
+                || err?.name === 'AbortError';
 
               if (isRetryable && retryCount < maxRetries) {
                 retryCount++;
-                // Update last_attempt timestamp for each retry attempt
-                await updateLastAttemptTimestamp(d.id);
                 logWarning(`RETRY ATTEMPT for element ${d.element} (Attempt ${retryCount}/${maxRetries})`, errorMsg);
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
@@ -279,6 +308,8 @@ async function aggregateAllData() {
     } catch (err) {
       logError("Fatal error in syncToDhis", err.message);
       throw err;
+    } finally {
+      syncInProgress = false;
     }
   }
 
