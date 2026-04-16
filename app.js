@@ -17,8 +17,8 @@ dhisServices.updateSyncDBAfternoon();
 dhisServices.updateSyncDBNight();
 dhisServices.updateSyncFailed();
 
-server.listen(3008, () =>
-  console.log(`Server is listening on port 3008.`)
+server.listen(3009, () =>
+  console.log(`Server is listening on port 3009.`)
 )
 
 
