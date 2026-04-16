@@ -189,13 +189,24 @@ async function aggregateAllData() {
               aggregatedCount++;
             } else {
               skippedCount++;
-              logWarning(`Skipping aggregation for record ID ${e.id}`, skipReason || 'No aggregation rule matched');
+              logError(`Skipping aggregation for record ID ${e.id}`, {
+                id: e.id,
+                uid: e.data?.uid || null,
+                scriptid: e.scriptid || null,
+                reason: skipReason || 'No aggregation rule matched',
+              });
             }
 
             await updateDHISSyncStatus(e.id)
           } catch (err) {
             failedCount++;
-            logError(`Error aggregating record (ID: ${e.id})`, err.message);
+            logError(`Error aggregating record (ID: ${e.id})`, {
+              id: e.id,
+              uid: e.data?.uid || null,
+              scriptid: e.scriptid || null,
+              message: err.message,
+              stack: err.stack,
+            });
           }
         }
         logSuccess(`Data aggregation completed`, {
@@ -213,7 +224,10 @@ async function aggregateAllData() {
         });
       }
     } catch (err) {
-      logError("Fatal error in aggregateAllData", err.message);
+      logError("Fatal error in aggregateAllData", {
+        message: err.message,
+        stack: err.stack,
+      });
       throw err;
     }
   }
@@ -296,9 +310,19 @@ async function aggregateAllData() {
               if (isDhisImportFailure(response, responseData)) {
                 const errorMsg = responseMsg || 'DHIS2 import failed';
                 await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
-                logWarning(
+                logError(
                   `DHIS2 sync FAILED for element ${d.element} (Period: ${d.period}, Status: ${response.status}, OrgUnit: ${orgUnit}, DataSet: ${dataSet}, CategoryOptionCombo: ${d.category})`,
-                  errorMsg
+                  {
+                    id: d.id,
+                    element: d.element,
+                    period: d.period,
+                    value: d.value,
+                    status: response.status,
+                    orgUnit,
+                    dataSet,
+                    categoryOptionCombo: d.category,
+                    message: errorMsg,
+                  }
                 );
                 failCount++;
               } else {
@@ -327,7 +351,15 @@ async function aggregateAllData() {
               } else {
                 const detailedError = `${errorMsg}${err?.code ? ` (${err.code})` : ''}`;
                 await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', detailedError);
-                logError(`DHIS2 sync ERROR for element ${d.element} (Period: ${d.period})`, detailedError);
+                logError(`DHIS2 sync ERROR for element ${d.element} (Period: ${d.period})`, {
+                  id: d.id,
+                  element: d.element,
+                  period: d.period,
+                  value: d.value,
+                  categoryOptionCombo: d.category,
+                  message: detailedError,
+                  stack: err?.stack,
+                });
                 failCount++;
                 break; // Exit retry loop
               }
@@ -345,7 +377,10 @@ async function aggregateAllData() {
         logInfo(`No data to sync (Type: ${syncType})`);
       }
     } catch (err) {
-      logError("Fatal error in syncToDhis", err.message);
+      logError("Fatal error in syncToDhis", {
+        message: err.message,
+        stack: err.stack,
+      });
       throw err;
     } finally {
       syncInProgress = false;

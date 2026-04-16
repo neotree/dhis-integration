@@ -2,7 +2,7 @@
 const { Pool } = require('pg');
 const config = require("../config/dev");
 const mapper = require("./mapper");
-const { logError, logInfo, logWarning } = require("../helper/logger");
+const { logError, logInfo } = require("../helper/logger");
 
 const connectionString = `postgresql://${config.DB_USER}:${config.DB_PW}@${config.DB_HOST}:${config.DB_PORT}/${config.DB}`;
 
@@ -162,12 +162,14 @@ async function updateDhisSyncDB() {
       : config.START_DATE;
 
     if (scripts.length === 0) {
-      logWarning("No script IDs configured; dhis_sync staging skipped");
+      logError("No script IDs configured; dhis_sync staging skipped", {
+        expected_env_vars: ['ADMISSIONS', 'DISCHARGE', 'MATERNALS'],
+      });
       return summary;
     }
 
     if (!syncStartDate) {
-      logWarning("START_DATE is not configured; only legacy seed UIDs will be staged");
+      logError("START_DATE is not configured; only legacy seed UIDs will be staged");
     }
 
     // DEDUPLICATE AND SYNC DATA
@@ -209,7 +211,11 @@ async function updateDhisSyncDB() {
           scriptid: s,
           message: err.message,
         });
-        logError(`Error syncing data for script ${s}`, err.message);
+        logError(`Error syncing data for script ${s}`, {
+          scriptid: s,
+          message: err.message,
+          stack: err.stack,
+        });
       }
     }
 
@@ -217,7 +223,7 @@ async function updateDhisSyncDB() {
     summary.pendingUnsynced = pendingResult.rows?.[0]?.count || 0;
 
     if (summary.errors.length > 0) {
-      logWarning("Database sync completed with issues", {
+      logError("Database sync completed with issues", {
         inserted: summary.inserted,
         pending_unsynced: summary.pendingUnsynced,
         scripts: summary.scripts,
@@ -231,7 +237,10 @@ async function updateDhisSyncDB() {
       });
     }
   } catch (err) {
-    logError("Fatal error in updateDhisSyncDB", err.message);
+    logError("Fatal error in updateDhisSyncDB", {
+      message: err.message,
+      stack: err.stack,
+    });
     summary.errors.push({ message: err.message });
   }
 
