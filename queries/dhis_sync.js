@@ -38,6 +38,40 @@ function trimConfigValue(value) {
   return typeof value === 'string' ? value.trim() : value;
 }
 
+function hasConfiguredValue(value) {
+  return typeof value === 'string' ? value.trim().length > 0 : Boolean(value);
+}
+
+function getAggregateRecordDebug(entry) {
+  const entries = entry?.data?.entries || {};
+  const entryKeys = Object.keys(entries);
+
+  return {
+    id: entry?.id ?? null,
+    uid: entry?.data?.uid ?? null,
+    scriptid: entry?.scriptid ?? null,
+    entry_key_count: entryKeys.length,
+    sample_entry_keys: entryKeys.slice(0, 10),
+    DateTimeAdmission: getValueFromKey(entry, "DateTimeAdmission", false, false) || null,
+    DateAdmission: getValueFromKey(entry, "DateAdmission", false, false) || null,
+  };
+}
+
+function getSyncRecordDebug(record, syncType, index, total, url, body) {
+  return {
+    sync_type: syncType,
+    index: index + 1,
+    total,
+    id: record?.id ?? null,
+    element: record?.element ?? null,
+    period: record?.period ?? null,
+    value: record?.value ?? null,
+    category: record?.category ?? null,
+    url,
+    payload: body,
+  };
+}
+
 function getDhisResponseMessage(response, responseData) {
   if (responseData == null) {
     return `HTTP ${response.status}: ${response.statusText}`;
@@ -115,23 +149,58 @@ async function aggregateAllData() {
       clearOldLogs(5000); // Clear logs if they exceed 5000 lines
 
       const stagingSummary = await updateDhisSyncDB();
+      logInfo("Aggregation staging summary", stagingSummary);
+
       const data = await getUnsyncedData();
 
       if (Array.isArray(data) && data.length > 0) {
+        const scriptBreakdown = data.reduce((acc, entry) => {
+          const key = entry?.scriptid || 'UNKNOWN';
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+
         logInfo(`Found ${data.length} unsynced records to process`);
+        logInfo("Aggregation queue breakdown", {
+          total: data.length,
+          scripts: scriptBreakdown,
+          configured_scripts: {
+            admissions: config.ADMISSIONS || null,
+            discharge: config.DISCHARGE || null,
+            maternals: config.MATERNALS || null,
+          },
+        });
+
         let aggregatedCount = 0;
         let skippedCount = 0;
         let failedCount = 0;
 
-        for (const e of data) {
+        for (let index = 0; index < data.length; index++) {
+          const e = data[index];
           try {
             let aggregated = false;
             let skipReason = null;
 
+            logInfo(`Processing dhis_sync row ${index + 1}/${data.length}`, getAggregateRecordDebug(e));
+
             if (e.scriptid === config.ADMISSIONS) {
               const admissionDate = getValueFromKey(e, "DateTimeAdmission", false, false)
+              logInfo("ADMISSIONS aggregation decision", {
+                id: e.id,
+                uid: e.data?.uid || null,
+                scriptid: e.scriptid,
+                admission_date: admissionDate || null,
+              });
+
               if (admissionDate) {
                 const period = getReportingPeriod(admissionDate)
+                logInfo("ADMISSIONS reporting period resolved", {
+                  id: e.id,
+                  uid: e.data?.uid || null,
+                  admission_date: admissionDate,
+                  period,
+                });
+
                 if (period != null) {
                     await aggregateDeliveryInAdmission(e, period)
                     await aggregateNewBornComplicationsInAdmission(e, period)
@@ -148,8 +217,22 @@ async function aggregateAllData() {
             }
             else if(e.scriptid === config.MATERNALS) {
               const admissionDate = getValueFromKey(e, "DateAdmission", false, false)
+              logInfo("MATERNALS aggregation decision", {
+                id: e.id,
+                uid: e.data?.uid || null,
+                scriptid: e.scriptid,
+                admission_date: admissionDate || null,
+              });
+
               if (admissionDate) {
                 const period = getReportingPeriod(admissionDate)
+                logInfo("MATERNALS reporting period resolved", {
+                  id: e.id,
+                  uid: e.data?.uid || null,
+                  admission_date: admissionDate,
+                  period,
+                });
+
                 if (period != null) {
                   await aggregateArt(e, period);
                   await aggregateBreastFeeding(e, period);
@@ -176,6 +259,12 @@ async function aggregateAllData() {
               }
             }
             else if (e.scriptid === config.DISCHARGE) {
+              logInfo("DISCHARGE aggregation decision", {
+                id: e.id,
+                uid: e.data?.uid || null,
+                scriptid: e.scriptid,
+              });
+
               await aggregateNewBornComplicationsMngtDischarge(e)
               await aggregatePMTCTDischarge(e)
               await aggregateRoutineCareDischarge(e)
@@ -198,6 +287,12 @@ async function aggregateAllData() {
             }
 
             await updateDHISSyncStatus(e.id)
+            logInfo("Marked dhis_sync row as synced", {
+              id: e.id,
+              uid: e.data?.uid || null,
+              scriptid: e.scriptid || null,
+              aggregated,
+            });
           } catch (err) {
             failedCount++;
             logError(`Error aggregating record (ID: ${e.id})`, {
@@ -251,6 +346,19 @@ async function aggregateAllData() {
       const orgUnit = trimConfigValue(config.DHIS_ORGUNIT)
       const dataSet = trimConfigValue(config.DHIS_DATASET)
       const attributeOptionCombo = trimConfigValue(config.DHIS_ATTRIBUTE_OPTION_COMBO)
+      const url = `${config.DHIS_HOST}/api/dataValueSets`;
+
+      logInfo("DHIS2 sync configuration", {
+        type: syncType,
+        request_timeout_ms: REQUEST_TIMEOUT_MS,
+        dhis_host_configured: hasConfiguredValue(config.DHIS_HOST),
+        dhis_user_configured: hasConfiguredValue(config.DHIS_USER),
+        dhis_password_configured: hasConfiguredValue(config.DHIS_PW),
+        dhis_orgunit: orgUnit || null,
+        dhis_dataset: dataSet || null,
+        attribute_option_combo: attributeOptionCombo || null,
+        target_url: url,
+      });
 
       logInfo(`=======ORG UNIT (Type: ${orgUnit})`);
       logInfo(`=======ORG DSET (Type: ${dataSet})`);
@@ -260,8 +368,12 @@ async function aggregateAllData() {
      
       if (data && Array.isArray(data) && data.length > 0) {
         logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
-        const url = `${config.DHIS_HOST}/api/dataValueSets`;
         var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
+        logInfo("DHIS2 sync queue summary", {
+          type: syncType,
+          total: data.length,
+          sample_records: data.slice(0, 5),
+        });
 
         let successCount = 0;
         let failCount = 0;
@@ -292,12 +404,23 @@ async function aggregateAllData() {
           };
           reqOpts.body = JSON.stringify({ ...body });
 
+          logInfo("Prepared DHIS2 payload", getSyncRecordDebug(d, syncType, index, data.length, url, body));
+
           let retryCount = 0;
           const maxRetries = 2;
 
           while (retryCount <= maxRetries) {
             try {
               await updateLastAttemptTimestamp(d.id);
+              logInfo("Posting data value set to DHIS2", {
+                id: d.id,
+                element: d.element,
+                period: d.period,
+                value: d.value,
+                attempt: retryCount + 1,
+                max_attempts: maxRetries + 1,
+                url,
+              });
 
               const response = await fetchWithTimeout(url, {
                 method: "POST",
@@ -306,6 +429,14 @@ async function aggregateAllData() {
 
               const responseData = await parseDhisResponse(response);
               const responseMsg = getDhisResponseMessage(response, responseData);
+              logInfo("Received DHIS2 response", {
+                id: d.id,
+                element: d.element,
+                period: d.period,
+                status: response.status,
+                ok: response.ok,
+                response: responseData,
+              });
 
               if (isDhisImportFailure(response, responseData)) {
                 const errorMsg = responseMsg || 'DHIS2 import failed';
@@ -345,7 +476,12 @@ async function aggregateAllData() {
 
               if (isRetryable && retryCount < maxRetries) {
                 retryCount++;
-                logWarning(`RETRY ATTEMPT for element ${d.element} (Attempt ${retryCount}/${maxRetries})`, errorMsg);
+                logWarning(`RETRY ATTEMPT for element ${d.element} (Attempt ${retryCount}/${maxRetries})`, {
+                  id: d.id,
+                  period: d.period,
+                  value: d.value,
+                  message: errorMsg,
+                });
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
               } else {
@@ -374,7 +510,13 @@ async function aggregateAllData() {
           failed: failCount
         });
       } else {
-        logInfo(`No data to sync (Type: ${syncType})`);
+        logInfo(`No data to sync (Type: ${syncType})`, {
+          type: syncType,
+          value_changed_query_result_count: Array.isArray(data) ? data.length : null,
+          dhis_host_configured: hasConfiguredValue(config.DHIS_HOST),
+          dhis_orgunit: orgUnit || null,
+          dhis_dataset: dataSet || null,
+        });
       }
     } catch (err) {
       logError("Fatal error in syncToDhis", {
