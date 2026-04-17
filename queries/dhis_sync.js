@@ -1,5 +1,5 @@
+const axios = require("axios");
 const config = require("../config/dev");
-const fetch = require("cross-fetch");
 const { logError, logInfo, logSuccess, logWarning, clearOldLogs } = require("../helper/logger");
 const aggregateArt = require("./art").aggregateArt
 const aggregateBreastFeeding = require("./breast_feeding").aggregateBreastFeeding
@@ -72,6 +72,18 @@ function getSyncRecordDebug(record, syncType, index, total, url, body) {
   };
 }
 
+function getResponseHeader(headers, headerName) {
+  if (!headers) {
+    return "";
+  }
+
+  if (typeof headers.get === "function") {
+    return headers.get(headerName) || "";
+  }
+
+  return headers[String(headerName).toLowerCase()] || headers[headerName] || "";
+}
+
 function getDhisResponseMessage(response, responseData) {
   if (responseData == null) {
     return `HTTP ${response.status}: ${response.statusText}`;
@@ -118,7 +130,11 @@ function isDhisImportFailure(response, responseData) {
 }
 
 async function parseDhisResponse(response) {
-  const contentType = response.headers.get("content-type") || "";
+  if (response && Object.prototype.hasOwnProperty.call(response, "data")) {
+    return response.data === "" ? null : response.data;
+  }
+
+  const contentType = getResponseHeader(response?.headers, "content-type");
 
   if (contentType.includes("application/json")) {
     return await response.json();
@@ -129,17 +145,19 @@ async function parseDhisResponse(response) {
 }
 
 async function fetchWithTimeout(url, options, timeoutMs) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const response = await axios({
+    url,
+    method: options?.method || "GET",
+    headers: options?.headers,
+    data: options?.data ?? options?.body,
+    timeout: timeoutMs,
+    validateStatus: () => true,
+  });
 
-  try {
-    return await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  return {
+    ...response,
+    ok: response.status >= 200 && response.status < 300,
+  };
 }
 
 
@@ -152,8 +170,6 @@ async function aggregateAllData() {
       logInfo("Aggregation staging summary", stagingSummary);
 
       const data = await getUnsyncedData();
-
-      logInfo("MY AGGREGATE DATA LENGTH::----")
 
       if (Array.isArray(data) && data.length > 0) {
         const scriptBreakdown = data.reduce((acc, entry) => {
@@ -363,21 +379,11 @@ async function aggregateAllData() {
         target_url: url,
       });
 
-      logInfo(`=======ORG UNIT (Type: ${orgUnit})`);
-      logInfo(`=======ORG DSET (Type: ${dataSet})`);
-      if (attributeOptionCombo) {
-        logInfo(`=======ORG AOC (Type: ${attributeOptionCombo})`);
-      }
       logInfo(`=======MY DATA LENTH (Type: ${data.length})`);
       if (data && Array.isArray(data) && data.length > 0) {
           logInfo(`=======CONFIRMED I AM HERE============`);
         logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
         var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
-        logInfo("DHIS2 sync queue summary", {
-          type: syncType,
-          total: data.length,
-          sample_records: data.slice(0, 5),
-        });
 
         let successCount = 0;
         let failCount = 0;
@@ -392,13 +398,11 @@ async function aggregateAllData() {
             dataSet: dataSet,
             orgUnit: orgUnit,
             period: d.period,
-            ...(attributeOptionCombo ? { attributeOptionCombo } : {}),
             dataValues: [{
               dataElement: d.element,
               value: d.value,
               orgUnit: orgUnit,
-              categoryOptionCombo: d.category,
-              ...(attributeOptionCombo ? { attributeOptionCombo } : {})
+              categoryOptionCombo: d.category
             }],
           };
           let reqOpts = {};
@@ -406,9 +410,8 @@ async function aggregateAllData() {
             Authorization: auth,
             "Content-Type": "application/json"
           };
-          reqOpts.body = JSON.stringify({ ...body });
+          reqOpts.data = { ...body };
 
-          logInfo("Prepared DHIS2 payload", getSyncRecordDebug(d, syncType, index, data.length, url, body));
 
           let retryCount = 0;
           const maxRetries = 2;
@@ -416,15 +419,6 @@ async function aggregateAllData() {
           while (retryCount <= maxRetries) {
             try {
               await updateLastAttemptTimestamp(d.id);
-              logInfo("Posting data value set to DHIS2", {
-                id: d.id,
-                element: d.element,
-                period: d.period,
-                value: d.value,
-                attempt: retryCount + 1,
-                max_attempts: maxRetries + 1,
-                url,
-              });
 
               const response = await fetchWithTimeout(url, {
                 method: "POST",
@@ -475,7 +469,9 @@ async function aggregateAllData() {
               const isRetryable = errorMsg.includes('socket hang up')
                 || errorMsg.includes('ECONNRESET')
                 || errorMsg.includes('ETIMEDOUT')
+                || errorMsg.includes('timeout')
                 || errorMsg.includes('aborted')
+                || err?.code === 'ECONNABORTED'
                 || err?.name === 'AbortError';
 
               if (isRetryable && retryCount < maxRetries) {
