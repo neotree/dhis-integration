@@ -1,3 +1,4 @@
+const { logError } = require("../helper/logger");
 const dhisSync = require("./dhis_sync")
 
 
@@ -12,8 +13,7 @@ const syncDhisAggregate = async (failed) => {
       await dhisSync.syncToDhis(false);
     }
   } catch(e){
-    console.error("Error in syncDhisAggregate:", e);
-    throw e;
+    logError("#####:AGGREGATE FAILED WITH::",e)
   }
 }
 
