@@ -153,7 +153,7 @@ async function aggregateAllData() {
 
       const data = await getUnsyncedData();
 
-      logInfo("MY AGGREGATE DATA LENGTH::----",data)
+      logInfo("MY AGGREGATE DATA LENGTH::----")
 
       if (Array.isArray(data) && data.length > 0) {
         const scriptBreakdown = data.reduce((acc, entry) => {
