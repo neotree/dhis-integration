@@ -40,6 +40,7 @@ async function getUnsyncedData() {
       }
     })
     .catch(err => {
+        logError("GET UNSYNCED ERROR: ",err)
       if (String(err).includes("does not exist")) {
         return []
       } else {
@@ -66,10 +67,12 @@ async function getDHISSyncData(failed) {
       }
     })
     .catch(err => {
+       logError("##GET DHIS SYSNC ERROR###",err)
       if (String(err).includes("does not exist")) {
+         logError("--##NOT EXISTS ERROR: ###--",err)
         return []
       } else {
-        throw new Error(err)
+        logError("--##UNSYNCED DATA ERROR###--",err)
       }
     })
 }
@@ -88,10 +91,11 @@ async function getMatched(uid) {
       }
     })
     .catch(err => {
+       logError("##GET MATCHED ERROR###",err)
       if (String(err).includes("does not exist")) {
         return []
       } else {
-        throw new Error(err)
+        logError("GET MATCHED ERROR::",err)
       }
     })
 }
