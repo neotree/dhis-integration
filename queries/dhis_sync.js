@@ -72,6 +72,19 @@ function getSyncRecordDebug(record, syncType, index, total, url, body) {
   };
 }
 
+function buildDataValueSetUrl(baseUrl, params) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.set(key, String(value));
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `${baseUrl}?${query}` : baseUrl;
+}
+
 function getResponseHeader(headers, headerName) {
   if (!headers) {
     return "";
@@ -394,15 +407,20 @@ async function aggregateAllData() {
             logInfo(`DHIS2 sync progress ${index + 1}/${data.length} (Type: ${syncType})`);
           }
 
-          let body = {
-            dataSet: dataSet,
-            orgUnit: orgUnit,
+          const requestUrl = buildDataValueSetUrl(url, {
+            dataSet,
             period: d.period,
+            orgUnit,
+            ...(attributeOptionCombo ? { attributeOptionCombo } : {}),
+          });
+
+          let body = {
             dataValues: [{
               dataElement: d.element,
               value: d.value,
               orgUnit: orgUnit,
-              categoryOptionCombo: d.category
+              categoryOptionCombo: d.category,
+              ...(attributeOptionCombo ? { attributeOptionCombo } : {}),
             }],
           };
           let reqOpts = {};
@@ -420,7 +438,7 @@ async function aggregateAllData() {
             try {
               await updateLastAttemptTimestamp(d.id);
 
-              const response = await fetchWithTimeout(url, {
+              const response = await fetchWithTimeout(requestUrl, {
                 method: "POST",
                 ...reqOpts,
               }, REQUEST_TIMEOUT_MS);
@@ -431,6 +449,7 @@ async function aggregateAllData() {
                 id: d.id,
                 element: d.element,
                 period: d.period,
+                request_url: requestUrl,
                 status: response.status,
                 ok: response.ok,
                 response: responseData,
@@ -447,6 +466,7 @@ async function aggregateAllData() {
                     period: d.period,
                     value: d.value,
                     status: response.status,
+                    request_url: requestUrl,
                     orgUnit,
                     dataSet,
                     categoryOptionCombo: d.category,
