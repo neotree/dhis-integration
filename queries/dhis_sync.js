@@ -153,6 +153,8 @@ async function aggregateAllData() {
 
       const data = await getUnsyncedData();
 
+      console.log("MY AGGREGATE DATA LENGTH::----"+Array.isArray(data) && data.length > 0)
+
       if (Array.isArray(data) && data.length > 0) {
         const scriptBreakdown = data.reduce((acc, entry) => {
           const key = entry?.scriptid || 'UNKNOWN';
@@ -365,8 +367,9 @@ async function aggregateAllData() {
       if (attributeOptionCombo) {
         logInfo(`=======ORG AOC (Type: ${attributeOptionCombo})`);
       }
-     
+      logInfo(`=======MY DATA LENTH (Type: ${data.length})`);
       if (data && Array.isArray(data) && data.length > 0) {
+          logInfo(`=======CONFIRMED I AM HERE============`);
         logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
         var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
         logInfo("DHIS2 sync queue summary", {
