@@ -254,6 +254,7 @@ async function aggregateAllData() {
                   aggregated = true;
                   logInfo(`Aggregated MATERNALS record (UID: ${e.data?.uid}, Period: ${period})`);
                 } else {
+                  logInfo(`SKIPPED RECORD (UID: ${e.data?.uid}, Period: ${period})`);
                   skipReason = `Invalid reporting period from DateAdmission: ${admissionDate}`;
                 }
               } else {

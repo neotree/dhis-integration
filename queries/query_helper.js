@@ -28,6 +28,7 @@ function sanitizeStatusMessage(msg) {
 }
 
 async function getUnsyncedData() {
+  logInfo("=======GETTING UNSYNCED DATA ====================",[])
   //SELECT DATA TO UPDATE
   return await pool.query(`SELECT id,scriptid, data FROM public.dhis_sync WHERE synced is false`)
     .then(res => {
@@ -36,6 +37,7 @@ async function getUnsyncedData() {
         var jsonObj = JSON.parse(jsonString);
         return jsonObj;
       } else {
+        logInfo("=======IN ELSE ====================",res)
         return []
       }
     })
