@@ -377,7 +377,6 @@ async function aggregateAllData() {
       const data = await getDHISSyncData(failed)
       const orgUnit = trimConfigValue(config.DHIS_ORGUNIT)
       const dataSet = trimConfigValue(config.DHIS_DATASET)
-      const attributeOptionCombo = trimConfigValue(config.DHIS_ATTRIBUTE_OPTION_COMBO)
       const url = `${config.DHIS_HOST}/api/dataValueSets`;
 
       logInfo("DHIS2 sync configuration", {
@@ -388,7 +387,6 @@ async function aggregateAllData() {
         dhis_password_configured: hasConfiguredValue(config.DHIS_PW),
         dhis_orgunit: orgUnit || null,
         dhis_dataset: dataSet || null,
-        attribute_option_combo: attributeOptionCombo || null,
         target_url: url,
       });
 
@@ -411,7 +409,6 @@ async function aggregateAllData() {
             dataSet,
             period: d.period,
             orgUnit,
-            ...(attributeOptionCombo ? { attributeOptionCombo } : {}),
           });
 
           let body = {
@@ -420,7 +417,6 @@ async function aggregateAllData() {
               value: d.value,
               orgUnit: orgUnit,
               categoryOptionCombo: d.category,
-              ...(attributeOptionCombo ? { attributeOptionCombo } : {}),
             }],
           };
           let reqOpts = {};
