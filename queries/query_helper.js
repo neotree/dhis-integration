@@ -28,17 +28,14 @@ function sanitizeStatusMessage(msg) {
 }
 
 async function getUnsyncedData() {
-   logInfo("=======GETTING UNSYNCED DATA====================")
   //SELECT DATA TO UPDATE
   return await pool.query(`SELECT id,scriptid, data FROM public.dhis_sync WHERE synced is false;`)
     .then(res => {
-      logInfo("=======RESULT FOUND====================",res.rows.length)
       if (res && res.rows) {
         var jsonString = JSON.stringify(res.rows);
         var jsonObj = JSON.parse(jsonString);
         return jsonObj;
       } else {
-        logInfo("=======IN ELSE ====================",res)
         return []
       }
     })
@@ -54,9 +51,9 @@ async function getUnsyncedData() {
 
 async function getDHISSyncData(failed) {
 
-  let query = `SELECT id,value,element,period,category FROM public.dhis_aggregate WHERE value_changed=TRUE`
+  let query = `SELECT id,value,element,period,category FROM public.dhis_aggregate WHERE value_changed=TRUE or status='SUCCESS';`
   if(failed){
-    query=`SELECT id,value,element,period,category FROM public.dhis_aggregate WHERE status='FAILED'`
+    query=`SELECT id,value,element,period,category FROM public.dhis_aggregate WHERE status='FAILED';`
   }
 
   return await pool.query(query)
@@ -70,13 +67,9 @@ async function getDHISSyncData(failed) {
       }
     })
     .catch(err => {
-       logError("##GET DHIS SYSNC ERROR###",err)
-      if (String(err).includes("does not exist")) {
-         logError("--##NOT EXISTS ERROR: ###--",err)
-        return []
-      } else {
-        logError("--##UNSYNCED DATA ERROR###--",err)
-      }
+      logError("##GET DHIS SYSNC ERROR###",err)
+      return []
+    
     })
 }
 

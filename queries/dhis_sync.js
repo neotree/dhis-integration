@@ -392,7 +392,7 @@ async function aggregateAllData() {
 
       logInfo(`=======MY DATA LENTH (Type: ${data.length})`);
       if (data && Array.isArray(data) && data.length > 0) {
-          logInfo(`=======CONFIRMED I AM HERE============`);
+         
         logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
         var auth = "Basic " + Buffer.from(config.DHIS_USER + ":" + config.DHIS_PW).toString("base64");
 
@@ -410,7 +410,9 @@ async function aggregateAllData() {
             period: d.period,
             orgUnit,
           });
-
+          if(String(period).includes('2026')){
+          logInfo(`=======CONFIRMED I AM HERE============`,requestUrl);
+          }
           let body = {
             dataValues: [{
               dataElement: d.element,
@@ -474,6 +476,9 @@ async function aggregateAllData() {
                 const successMsg = typeof responseData === 'object' && responseData?.status
                   ? responseData.status
                   : 'N/A';
+                  if(d.period=='202603' && d.element=='EJ0qYm1FrcH'){
+                  logInfo("-----MY RESPONSE::::---",responseData)
+                  }
                 await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', successMsg);
                 logSuccess(`DHIS2 sync SUCCESS for element ${d.element} (Period: ${d.period}, Value: ${d.value})`);
                 successCount++;
