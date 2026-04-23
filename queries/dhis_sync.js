@@ -410,9 +410,10 @@ async function aggregateAllData() {
             period: d.period,
             orgUnit,
           });
-          if(String(period).includes('2026')){
-          logInfo(`=======CONFIRMED I AM HERE============`,requestUrl);
+          if(d.period=='202603' && d.element=='a3DzFDGAQAi'){
+          logInfo(`MY REQUEST URL::::`,requestUrl)
           }
+        
           let body = {
             dataValues: [{
               dataElement: d.element,
@@ -476,9 +477,9 @@ async function aggregateAllData() {
                 const successMsg = typeof responseData === 'object' && responseData?.status
                   ? responseData.status
                   : 'N/A';
-                  if(d.period=='202603' && d.element=='EJ0qYm1FrcH'){
-                  logInfo("-----MY RESPONSE::::---",responseData)
-                  }
+                  if(d.period=='202603' && d.element=='a3DzFDGAQAi'){
+                 logInfo(`SUPPOZED SUCCESS::::`,responseData)
+                }
                 await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', successMsg);
                 logSuccess(`DHIS2 sync SUCCESS for element ${d.element} (Period: ${d.period}, Value: ${d.value})`);
                 successCount++;
