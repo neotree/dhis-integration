@@ -6,6 +6,8 @@ DHIS_HOST= https://mydhis2host.com
 
 DHIS_PORT= 8087
 
+PORT= 3009
+
 DB= my_neotree_databse
 
 DB_PW= my_dbase_password

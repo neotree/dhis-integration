@@ -5,6 +5,7 @@ const http = require('http');
 const app = express()
 const server = http.createServer(app);
 const dhisServices = require('./helper/cronJob');
+const port = Number(process.env.PORT) || 3009;
 
 
 app.get('/', (request, response) => {
@@ -17,8 +18,8 @@ dhisServices.updateSyncDBAfternoon();
 dhisServices.updateSyncDBNight();
 dhisServices.updateSyncFailed();
 
-server.listen(3009, () =>
-  console.log(`Server is listening on port 3009.`)
+server.listen(port, () =>
+  console.log(`Server is listening on port ${port}.`)
 )
 
 
