@@ -31,7 +31,7 @@ const getDHISSyncData = require("./query_helper").getDHISSyncData
 const updateDHISAggregateStatusWithSuccess = require("./query_helper").updateDHISAggregateStatusWithSuccess
 const updateLastAttemptTimestamp = require("./query_helper").updateLastAttemptTimestamp
 const aggregateRoutineCareDischarge = require("./pmtct_routine_care_discharge").aggregateRoutineCareDischarge
-const REQUEST_TIMEOUT_MS = 60000;
+const REQUEST_TIMEOUT_MS = 6000000;
 let syncInProgress = false;
 
 function trimConfigValue(value) {
