@@ -390,7 +390,6 @@ async function aggregateAllData() {
         target_url: url,
       });
 
-      logInfo(`=======MY DATA LENTH (Type: ${data.length})`);
       if (data && Array.isArray(data) && data.length > 0) {
          
         logInfo(`Syncing ${data.length} records to DHIS2 (Type: ${syncType})`);
@@ -410,9 +409,9 @@ async function aggregateAllData() {
             period: d.period,
             orgUnit,
           });
-          if(d.period=='202603' && d.element=='a3DzFDGAQAi'){
+         
           logInfo(`MY REQUEST URL::::`,requestUrl)
-          }
+        
         
           let body = {
             dataValues: [{
@@ -442,15 +441,15 @@ async function aggregateAllData() {
                 ...reqOpts,
               }, REQUEST_TIMEOUT_MS);
 
+              logInfo("@@-------RESPONSE:::---",response)
+
               const responseData = await parseDhisResponse(response);
               const responseMsg = getDhisResponseMessage(response, responseData);
-              logInfo("Received DHIS2 response", {
+              logInfo("Received DHIS2 response:::::::::", {
                 id: d.id,
                 element: d.element,
                 period: d.period,
                 request_url: requestUrl,
-                status: response.status,
-                ok: response.ok,
                 response: responseData,
               });
 
@@ -477,9 +476,9 @@ async function aggregateAllData() {
                 const successMsg = typeof responseData === 'object' && responseData?.status
                   ? responseData.status
                   : 'N/A';
-                  if(d.period=='202603' && d.element=='a3DzFDGAQAi'){
+                  
                  logInfo(`SUPPOZED SUCCESS::::`,responseData)
-                }
+                
                 await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', successMsg);
                 logSuccess(`DHIS2 sync SUCCESS for element ${d.element} (Period: ${d.period}, Value: ${d.value})`);
                 successCount++;
