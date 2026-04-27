@@ -441,7 +441,12 @@ async function aggregateAllData() {
                 ...reqOpts,
               }, REQUEST_TIMEOUT_MS);
 
-              logInfo("@@-------RESPONSE:::---",response)
+              logInfo("DHIS2 raw response metadata", {
+                status: response?.status,
+                statusText: response?.statusText,
+                ok: response?.ok,
+                url: response?.url,
+              });
 
               const responseData = await parseDhisResponse(response);
               const responseMsg = getDhisResponseMessage(response, responseData);

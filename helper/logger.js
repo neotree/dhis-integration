@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const util = require('util');
 
 // Ensure logs directory exists
 const logsDir = path.join(__dirname, '..', 'logs');
@@ -40,15 +41,60 @@ function formatMessage(level, message, data = null) {
   const timestamp = getTimestamp();
   let logMessage = `[${timestamp}] [${level}] ${message}`;
 
-  if (data) {
-    if (typeof data === 'object') {
-      logMessage += '\n' + JSON.stringify(data, null, 2);
-    } else {
-      logMessage += '\n' + String(data);
-    }
+  if (data !== null && data !== undefined) {
+    logMessage += '\n' + formatData(data);
   }
 
   return logMessage;
+}
+
+function formatData(data) {
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  if (typeof data === 'number' || typeof data === 'boolean' || typeof data === 'bigint') {
+    return String(data);
+  }
+
+  if (typeof data === 'function') {
+    return data.toString();
+  }
+
+  const seen = new WeakSet();
+
+  try {
+    return JSON.stringify(data, (key, value) => {
+      if (typeof value === 'bigint') {
+        return value.toString();
+      }
+
+      if (typeof value === 'function') {
+        return `[Function${value.name ? `: ${value.name}` : ''}]`;
+      }
+
+      if (typeof value === 'symbol') {
+        return value.toString();
+      }
+
+      if (value && typeof value === 'object') {
+        if (seen.has(value)) {
+          return '[Circular]';
+        }
+        seen.add(value);
+      }
+
+      return value;
+    }, 2);
+  } catch (err) {
+    return util.inspect(data, {
+      depth: 5,
+      breakLength: 120,
+      compact: false,
+      sorted: true,
+      maxArrayLength: 50,
+    });
+  }
 }
 
 // Write to log file
