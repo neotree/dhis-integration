@@ -97,6 +97,32 @@ function getResponseHeader(headers, headerName) {
   return headers[String(headerName).toLowerCase()] || headers[headerName] || "";
 }
 
+function getResponseBodyPreview(responseData, maxLength = 300) {
+  const value = typeof responseData === 'string'
+    ? responseData
+    : JSON.stringify(responseData);
+
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function getDhisResponseDiagnostics(response, responseData) {
+  const contentType = getResponseHeader(response?.headers, "content-type");
+  const location = getResponseHeader(response?.headers, "location");
+  const finalUrl = response?.request?.res?.responseUrl || response?.config?.url || response?.url || null;
+
+  return {
+    status: response?.status,
+    statusText: response?.statusText,
+    contentType: contentType || null,
+    location: location || null,
+    finalUrl,
+    bodyPreview: getResponseBodyPreview(responseData),
+  };
+}
+
 function getDhisResponseMessage(response, responseData) {
   if (responseData == null) {
     return `HTTP ${response.status}: ${response.statusText}`;
@@ -182,13 +208,19 @@ function isDhisImportSuccess(response, responseData) {
 
 function getDhisImportFailureMessage(response, responseData) {
   const responseMsg = getDhisResponseMessage(response, responseData);
+  const diagnostics = getDhisResponseDiagnostics(response, responseData);
+  const diagnosticMsg = [
+    diagnostics.contentType ? `content-type=${diagnostics.contentType}` : null,
+    diagnostics.location ? `location=${diagnostics.location}` : null,
+    diagnostics.bodyPreview ? `body=${diagnostics.bodyPreview}` : null,
+  ].filter(Boolean).join("; ");
 
   if (!response.ok) {
-    return responseMsg || `HTTP ${response.status}: ${response.statusText}`;
+    return diagnosticMsg || responseMsg || `HTTP ${response.status}: ${response.statusText}`;
   }
 
   if (!getDhisImportSummary(responseData)?.importCount) {
-    return `DHIS2 response did not include an import summary: ${responseMsg}`;
+    return `DHIS2 response did not include an import summary: ${diagnosticMsg || responseMsg}`;
   }
 
   return responseMsg || 'DHIS2 import failed';
@@ -216,6 +248,7 @@ async function fetchWithTimeout(url, options, timeoutMs) {
     headers: options?.headers,
     data: options?.data ?? options?.body,
     timeout: timeoutMs,
+    maxRedirects: 0,
     validateStatus: () => true,
   });
 
@@ -476,7 +509,8 @@ async function aggregateAllData() {
           let reqOpts = {};
           reqOpts.headers = {
             Authorization: auth,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Accept": "application/json"
           };
           reqOpts.data = { ...body };
 
@@ -497,7 +531,9 @@ async function aggregateAllData() {
                 status: response?.status,
                 statusText: response?.statusText,
                 ok: response?.ok,
-                url: response?.url,
+                url: response?.request?.res?.responseUrl || response?.config?.url || response?.url,
+                contentType: getResponseHeader(response?.headers, "content-type") || null,
+                location: getResponseHeader(response?.headers, "location") || null,
               });
 
               const responseData = await parseDhisResponse(response);
@@ -524,6 +560,7 @@ async function aggregateAllData() {
                     orgUnit,
                     dataSet,
                     categoryOptionCombo: d.category,
+                    response: getDhisResponseDiagnostics(response, responseData),
                     message: errorMsg,
                   }
                 );
