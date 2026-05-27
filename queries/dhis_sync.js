@@ -126,20 +126,72 @@ function getDhisResponseMessage(response, responseData) {
   return JSON.stringify(responseData);
 }
 
+function getDhisImportSummary(responseData) {
+  if (!responseData || typeof responseData !== 'object') {
+    return null;
+  }
+
+  if (responseData.importCount) {
+    return responseData;
+  }
+
+  if (responseData.response && typeof responseData.response === 'object') {
+    return responseData.response;
+  }
+
+  return null;
+}
+
 function isDhisImportFailure(response, responseData) {
   if (!response.ok) {
     return true;
   }
 
-  if (!responseData || typeof responseData !== 'object') {
+  const importSummary = getDhisImportSummary(responseData);
+  if (!importSummary) {
     return false;
   }
 
-  const ignored = Number(responseData.importCount?.ignored || 0);
-  const hasConflicts = Array.isArray(responseData.conflicts) && responseData.conflicts.length > 0;
-  const status = typeof responseData.status === 'string' ? responseData.status.toUpperCase() : '';
+  const ignored = Number(importSummary.importCount?.ignored || 0);
+  const hasConflicts = Array.isArray(importSummary.conflicts) && importSummary.conflicts.length > 0;
+  const status = typeof importSummary.status === 'string' ? importSummary.status.toUpperCase() : '';
 
   return ignored > 0 || hasConflicts || status === 'ERROR';
+}
+
+function isDhisImportSuccess(response, responseData) {
+  if (isDhisImportFailure(response, responseData)) {
+    return false;
+  }
+
+  const importSummary = getDhisImportSummary(responseData);
+  if (!importSummary?.importCount) {
+    return false;
+  }
+
+  const ignored = Number(importSummary.importCount?.ignored || 0);
+  const status = typeof importSummary.status === 'string' ? importSummary.status.toUpperCase() : '';
+  const responseType = typeof importSummary.responseType === 'string'
+    ? importSummary.responseType.toUpperCase()
+    : '';
+
+  return ignored === 0
+    && (status === 'SUCCESS' || status === 'OK')
+    && (!responseType || responseType === 'IMPORTSUMMARY');
+}
+
+function getDhisImportFailureMessage(response, responseData) {
+  const responseMsg = getDhisResponseMessage(response, responseData);
+
+  if (!response.ok) {
+    return responseMsg || `HTTP ${response.status}: ${response.statusText}`;
+  }
+
+  if (!getDhisImportSummary(responseData)?.importCount) {
+    return `DHIS2 response did not include an import summary: ${responseMsg}`;
+  }
+
+  return responseMsg || 'DHIS2 import failed';
 }
 
 async function parseDhisResponse(response) {
@@ -449,7 +501,6 @@ async function aggregateAllData() {
               });
 
               const responseData = await parseDhisResponse(response);
-              const responseMsg = getDhisResponseMessage(response, responseData);
               logInfo("Received DHIS2 response:::::::::", {
                 id: d.id,
                 element: d.element,
@@ -458,8 +509,8 @@ async function aggregateAllData() {
                 response: responseData,
               });
 
-              if (isDhisImportFailure(response, responseData)) {
-                const errorMsg = responseMsg || 'DHIS2 import failed';
+              if (!isDhisImportSuccess(response, responseData)) {
+                const errorMsg = getDhisImportFailureMessage(response, responseData);
                 await updateDHISAggregateStatusWithSuccess(d.id, 'FAILED', errorMsg);
                 logError(
                   `DHIS2 sync FAILED for element ${d.element} (Period: ${d.period}, Status: ${response.status}, OrgUnit: ${orgUnit}, DataSet: ${dataSet}, CategoryOptionCombo: ${d.category})`,
@@ -478,11 +529,12 @@ async function aggregateAllData() {
                 );
                 failCount++;
               } else {
-                const successMsg = typeof responseData === 'object' && responseData?.status
-                  ? responseData.status
+                const importSummary = getDhisImportSummary(responseData);
+                const successMsg = importSummary?.status
+                  ? importSummary.status
                   : 'N/A';
                   
-                 logInfo(`SUPPOZED SUCCESS::::`,responseData)
+                logInfo(`DHIS2 import summary accepted`, responseData)
                 
                 await updateDHISAggregateStatusWithSuccess(d.id, 'SUCCESS', successMsg);
                 logSuccess(`DHIS2 sync SUCCESS for element ${d.element} (Period: ${d.period}, Value: ${d.value})`);

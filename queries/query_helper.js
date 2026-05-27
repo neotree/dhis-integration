@@ -51,7 +51,12 @@ async function getUnsyncedData() {
 
 async function getDHISSyncData(failed) {
 
-  let query = `SELECT id,value,element,period,category FROM public.dhis_aggregate WHERE value_changed=TRUE or status='SUCCESS';`
+  let query = `
+    SELECT id,value,element,period,category
+    FROM public.dhis_aggregate
+    WHERE value_changed IS TRUE
+      OR COALESCE(status, 'PENDING') <> 'SUCCESS';
+  `
   if(failed){
     query=`SELECT id,value,element,period,category FROM public.dhis_aggregate WHERE status='FAILED';`
   }
