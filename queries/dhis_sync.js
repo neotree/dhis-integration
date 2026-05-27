@@ -42,6 +42,37 @@ function hasConfiguredValue(value) {
   return typeof value === 'string' ? value.trim().length > 0 : Boolean(value);
 }
 
+function getDhisHost() {
+  const host = trimConfigValue(config.DHIS_HOST);
+  if (!host) {
+    return host;
+  }
+
+  const normalizedHost = host.replace(/\/+$/, '');
+  const allowPlainHttp = String(process.env.DHIS_ALLOW_PLAIN_HTTP || '').toLowerCase() === 'true';
+
+  try {
+    const parsedHost = new URL(normalizedHost);
+    const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(parsedHost.hostname);
+
+    if (parsedHost.protocol === 'http:' && !isLocalHost && !allowPlainHttp) {
+      parsedHost.protocol = 'https:';
+      logWarning("DHIS_HOST used http for a non-local host; using https to avoid nginx redirecting POST requests", {
+        configured_host: normalizedHost,
+        effective_host: parsedHost.toString().replace(/\/+$/, ''),
+      });
+      return parsedHost.toString().replace(/\/+$/, '');
+    }
+  } catch (err) {
+    logWarning("DHIS_HOST is not a valid URL", {
+      configured_host: normalizedHost,
+      message: err.message,
+    });
+  }
+
+  return normalizedHost;
+}
+
 function getAggregateRecordDebug(entry) {
   const entries = entry?.data?.entries || {};
   const entryKeys = Object.keys(entries);
@@ -462,7 +493,8 @@ async function aggregateAllData() {
       const data = await getDHISSyncData(failed)
       const orgUnit = trimConfigValue(config.DHIS_ORGUNIT)
       const dataSet = trimConfigValue(config.DHIS_DATASET)
-      const url = `${config.DHIS_HOST}/api/dataValueSets`;
+      const dhisHost = getDhisHost();
+      const url = `${dhisHost}/api/dataValueSets`;
 
       logInfo("DHIS2 sync configuration", {
         type: syncType,
