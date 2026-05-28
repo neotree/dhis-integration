@@ -592,10 +592,12 @@ async function aggregateAllData() {
         
         
           let body = {
+            dataSet: dataSet,
+            period: d.period,
+            orgUnit: orgUnit,
             dataValues: [{
               dataElement: d.element,
               value: d.value,
-              orgUnit: orgUnit,
               categoryOptionCombo: d.category,
             }],
           };
