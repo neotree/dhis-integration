@@ -139,48 +139,23 @@ function getResponseBodyPreview(responseData, maxLength = 300) {
     .slice(0, maxLength);
 }
 
-function getDhisResponseDiagnostics(response, responseData) {
-  const contentType = getResponseHeader(response?.headers, "content-type");
-  const location = getResponseHeader(response?.headers, "location");
-  const finalUrl = response?.request?.res?.responseUrl || response?.config?.url || response?.url || null;
-
-  return {
-    status: response?.status,
-    statusText: response?.statusText,
-    contentType: contentType || null,
-    location: location || null,
-    finalUrl,
-    bodyPreview: getResponseBodyPreview(responseData),
-  };
-}
-
-function getDhisResponseMessage(response, responseData) {
-  if (responseData == null) {
-    return `HTTP ${response.status}: ${response.statusText}`;
+function formatDhisConflict(conflict) {
+  if (!conflict) {
+    return null;
   }
 
-  if (typeof responseData === 'string') {
-    return responseData;
+  if (typeof conflict === 'string') {
+    return conflict;
   }
 
-  const conflicts = Array.isArray(responseData.conflicts)
-    ? responseData.conflicts.map(conflict => conflict?.value || conflict?.message).filter(Boolean)
-    : [];
+  const object = conflict.object || conflict.property || conflict.path || conflict.field;
+  const value = conflict.value || conflict.message || conflict.description;
 
-  const details = [
-    responseData.message,
-    responseData.description,
-    responseData.error?.message,
-    responseData.response?.message,
-    responseData.response?.description,
-    conflicts.length > 0 ? conflicts.join("; ") : null
-  ].filter(Boolean);
-
-  if (details.length > 0) {
-    return details.join(" | ");
+  if (object && value) {
+    return `${object}: ${value}`;
   }
 
-  return JSON.stringify(responseData);
+  return value || object || JSON.stringify(conflict);
 }
 
 function getDhisImportSummary(responseData) {
@@ -199,6 +174,88 @@ function getDhisImportSummary(responseData) {
   return null;
 }
 
+function getDhisConflictMessages(responseData) {
+  const importSummary = getDhisImportSummary(responseData);
+  const conflictSources = [
+    responseData?.conflicts,
+    responseData?.response?.conflicts,
+    importSummary?.conflicts,
+  ];
+
+  if (Array.isArray(importSummary?.importSummaries)) {
+    importSummary.importSummaries.forEach(summary => {
+      conflictSources.push(summary?.conflicts);
+    });
+  }
+
+  return conflictSources
+    .filter(Array.isArray)
+    .flat()
+    .map(formatDhisConflict)
+    .filter(Boolean)
+    .filter((message, index, messages) => messages.indexOf(message) === index);
+}
+
+function formatDhisImportCount(importSummary) {
+  if (!importSummary?.importCount) {
+    return null;
+  }
+
+  const count = importSummary.importCount;
+  return `imported=${Number(count.imported || 0)}, updated=${Number(count.updated || 0)}, ignored=${Number(count.ignored || 0)}, deleted=${Number(count.deleted || 0)}`;
+}
+
+function getDhisResponseDiagnostics(response, responseData) {
+  const contentType = getResponseHeader(response?.headers, "content-type");
+  const location = getResponseHeader(response?.headers, "location");
+  const finalUrl = response?.request?.res?.responseUrl || response?.config?.url || response?.url || null;
+  const importSummary = getDhisImportSummary(responseData);
+  const conflicts = getDhisConflictMessages(responseData);
+
+  return {
+    status: response?.status,
+    statusText: response?.statusText,
+    contentType: contentType || null,
+    location: location || null,
+    finalUrl,
+    importStatus: importSummary?.status || null,
+    importCount: importSummary?.importCount || null,
+    conflicts,
+    bodyPreview: getResponseBodyPreview(responseData),
+  };
+}
+
+function getDhisResponseMessage(response, responseData) {
+  if (responseData == null) {
+    return `HTTP ${response.status}: ${response.statusText}`;
+  }
+
+  if (typeof responseData === 'string') {
+    return responseData;
+  }
+
+  const importSummary = getDhisImportSummary(responseData);
+  const conflicts = getDhisConflictMessages(responseData);
+  const importCount = formatDhisImportCount(importSummary);
+
+  const details = [
+    conflicts.length > 0 ? `conflicts=${conflicts.join("; ")}` : null,
+    responseData.message,
+    responseData.description,
+    responseData.error?.message,
+    responseData.response?.message,
+    responseData.response?.description,
+    importSummary?.message,
+    importSummary?.description,
+    importCount,
+  ].filter(Boolean);
+
+  if (details.length > 0) {
+    return details.join(" | ");
+  }
+
+  return JSON.stringify(responseData);
+}
 function isDhisImportFailure(response, responseData) {
   if (!response.ok) {
     return true;
@@ -243,11 +300,15 @@ function getDhisImportFailureMessage(response, responseData) {
   const diagnosticMsg = [
     diagnostics.contentType ? `content-type=${diagnostics.contentType}` : null,
     diagnostics.location ? `location=${diagnostics.location}` : null,
+    diagnostics.importStatus ? `importStatus=${diagnostics.importStatus}` : null,
+    diagnostics.importCount ? `importCount=${formatDhisImportCount({ importCount: diagnostics.importCount })}` : null,
     diagnostics.bodyPreview ? `body=${diagnostics.bodyPreview}` : null,
   ].filter(Boolean).join("; ");
 
   if (!response.ok) {
-    return diagnosticMsg || responseMsg || `HTTP ${response.status}: ${response.statusText}`;
+    return [responseMsg, diagnosticMsg]
+      .filter(Boolean)
+      .join(" | ") || `HTTP ${response.status}: ${response.statusText}`;
   }
 
   if (!getDhisImportSummary(responseData)?.importCount) {
