@@ -1,3 +1,11 @@
+> [!IMPORTANT]
+> **Security advisory — affects copies taken between April and August 2026.**
+> Malicious code was present in this repository's default branch during part of
+> that period. The repository has been cleaned, its history rewritten, and the
+> result verified. If you cloned or downloaded it before **28 August 2026**,
+> please read [ADVISORY.md](./ADVISORY.md) and check your copy — and clone
+> afresh rather than pulling into an existing copy.
+
 # neotree-dhis2-api
 
 This is a basic guide for exporting data from the neo tree postgres database to the DHIS2 System.
