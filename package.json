@@ -1,6 +1,7 @@
 {
   "name": "dhis-integration",
   "version": "1.0.0",
+  "engines": { "node": ">=22.23.4" },
   "description": "RESTful APP For Sending Data To DHIS2",
   "main": "app.js",
   "scripts": {
