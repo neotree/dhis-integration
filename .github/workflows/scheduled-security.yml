@@ -1,0 +1,22 @@
+name: Scheduled Security Scan
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scheduled:
+    uses: neotree/security-ci/.github/workflows/scheduled-security.yml@3acfc3b7c6058c25fe8a19e5b6a2c237343686f7
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
+    with:
+      security-ci-ref: 3acfc3b7c6058c25fe8a19e5b6a2c237343686f7
+      # Nightly OSV re-check of dependencies already on the default branch. Tighten as the
+      # backlog clears (9.0 -> 7.0 -> 4.0); it may never be loosened above the default.
+      # osv-cvss-threshold: "7.0"
