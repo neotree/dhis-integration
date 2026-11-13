@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "Repository-specific policy. Merged onto neotree/security-ci policy.defaults.json.",
+    "This file may TIGHTEN the gate but never loosen it: removing a blocking severity is",
+    "rejected and reported as POLICY_OVERLAY_WEAKENED. Everything here is a security",
+    "control, so changes require Code Owner review and a security-reviewed:<sha7> label."
+  ],
+  "exceptions": []
+}

@@ -1,0 +1,32 @@
+# Code Owners.
+#
+# Branch protection must have "Require review from Code Owners" enabled for any of this
+# to bind, and the team must have at least Write access to this repository. GitHub rejects
+# an entry whose team lacks access with "Unknown owner", and until it is fixed the control
+# does nothing.
+#
+# @neotree/core-devs owns every protected path. It has three members, so a pull-request
+# author - who never satisfies their own Code Owner review - always leaves two possible
+# reviewers. @neotree/maintainers is deliberately NOT listed: it is scoped to the
+# org-governance repositories and has no access to the code repositories, so naming it
+# here would fail validation.
+#
+# CODEOWNERS uses LAST-MATCH-WINS: the final matching line decides the owner.
+
+*                           @neotree/core-devs
+/security/                  @neotree/core-devs
+/.github/workflows/         @neotree/core-devs
+/.github/actions/           @neotree/core-devs
+/.npmrc                     @neotree/core-devs
+/.yarnrc                    @neotree/core-devs
+/.yarnrc.yml                @neotree/core-devs
+/.pnpmfile.cjs              @neotree/core-devs
+/pnpm-workspace.yaml        @neotree/core-devs
+# Scanner scope and suppression files: each can silence a scanner for the whole repository.
+/.semgrepignore             @neotree/core-devs
+/.gitleaksignore            @neotree/core-devs
+/.osv-scanner.toml          @neotree/core-devs
+/osv-scanner.toml           @neotree/core-devs
+/.gitattributes             @neotree/core-devs
+/.github/CODEOWNERS         @neotree/core-devs
+/.github/dependabot.yml     @neotree/core-devs

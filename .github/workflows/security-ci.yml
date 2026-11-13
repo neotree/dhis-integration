@@ -1,0 +1,41 @@
+name: Security CI
+
+# Thin caller. All logic lives in neotree/security-ci, pinned by SHA.
+# Update the SHA in BOTH the `uses:` line and `security-ci-ref` together - Dependabot
+# opens a pull request for the `uses:` line, and the gate fails loudly if they disagree.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  security:
+    uses: neotree/security-ci/.github/workflows/security-ci.yml@3acfc3b7c6058c25fe8a19e5b6a2c237343686f7
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
+    with:
+      security-ci-ref: 3acfc3b7c6058c25fe8a19e5b6a2c237343686f7
+      node-version: "22.23.4"
+      # CodeQL is not run here: the organisation-level code scanning configuration runs it
+      # on every repository, and a second configuration would only fail its upload.
+      # Private repositories on the Free plan have no code scanning at all:
+      # upload-sarif: false
+      # Hosts the install/build needs beyond the npm registry (e.g. Prisma engines,
+      # Google Fonts for next/font). Keep the folded `>-`: the list must reach
+      # harden-runner space-separated, and a `|` block silently allows nothing.
+      # Sigstore's TUF repository: `npm audit signatures` fetches its trust root from
+      # there to verify the provenance attestations some dependencies carry.
+      extra-egress-endpoints: >-
+        tuf-repo-cdn.sigstore.dev:443
