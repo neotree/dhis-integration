@@ -254,7 +254,7 @@ async function updateDhisSyncDB() {
 
 async function updateDHISSyncStatus(entryId) {
   if (entryId) {
-    await pool.query(`UPDATE public.dhis_sync SET synced = TRUE WHERE id=${entryId}`);
+    await pool.query('UPDATE public.dhis_sync SET synced = TRUE WHERE id = $1', [entryId]);
   }
 }
 async function updateDHISAggregateStatus(id,status,msg) {
@@ -330,21 +330,25 @@ async function updateValues(mapper, period, value) {
 
 // USE THIS FUNCTION TO SET ZERO VALUES TO ALL DATA ELEMENTS ON ENCOUNTER OF A NEW PERIOD
 async function seedZeroesForPeriod(period) {
-  const periodSeeded = await pool.query(`select exists(select 1 from public.dhis_aggregate where "period"='${period}') AS "exists"`)
-    .then(res => {
-      if (res && res.rows && Array.isArray(res.rows) && res.rows.length > 0) {
-        var jsonString = JSON.stringify(res.rows[0]);
-        var jsonObj = JSON.parse(jsonString);
-        return jsonObj['exists'];
-      }
-    }).catch(e => {
-      return false
-    })
+  let periodSeeded;
+  try {
+    const res = await pool.query(
+      'SELECT EXISTS(SELECT 1 FROM public.dhis_aggregate WHERE "period" = $1) AS "exists"',
+      [period]
+    );
+    periodSeeded = res.rows[0].exists;
+  } catch (err) {
+    // Don't treat a failed check as "not seeded", or every row gets inserted again.
+    logError("##SEED ZEROES: PERIOD EXISTS CHECK FAILED###", err);
+    return;
+  }
   if (!periodSeeded) {
     for (const key in mapper) {
-      await pool.query(`INSERT INTO public.dhis_aggregate(element,category,period,value,status,last_attempt)
-        VALUES('${mapper[key]['element']}','${mapper[key]['categoryOptionCombo']}','${period}',0,'PENDING',now() at time zone 'Africa/Johannesburg')`);
-
+      await pool.query(
+        `INSERT INTO public.dhis_aggregate(element, category, period, value, status, last_attempt)
+         VALUES ($1, $2, $3, 0, 'PENDING', now() at time zone 'Africa/Johannesburg')`,
+        [mapper[key].element, mapper[key].categoryOptionCombo, period]
+      );
     }
   }
 }
@@ -367,13 +371,13 @@ async function updateDHISAggregateStatusWithSuccess(id, status, msg) {
 
 async function updateLastAttemptTimestamp(id) {
   if (id) {
-    await pool.query(`UPDATE public.dhis_aggregate SET last_attempt=now() at time zone 'Africa/Johannesburg' WHERE id=${id}`);
+    await pool.query(`UPDATE public.dhis_aggregate SET last_attempt = now() at time zone 'Africa/Johannesburg' WHERE id = $1`, [id]);
   }
 }
 
 async function resetValueChangedFlag(id) {
   if (id) {
-    await pool.query(`UPDATE public.dhis_aggregate SET value_changed=FALSE WHERE id=${id}`);
+    await pool.query('UPDATE public.dhis_aggregate SET value_changed = FALSE WHERE id = $1', [id]);
   }
 }
 
