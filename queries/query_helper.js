@@ -22,9 +22,7 @@ const LEGACY_SYNC_UIDS = [
 ];
 
 function sanitizeStatusMessage(msg) {
-  const normalized = String(msg ?? 'N/A');
-  const escaped = normalized.replace(/'/g, "''");
-  return escaped.length > 255 ? escaped.slice(0, 255) : escaped;
+  return String(msg ?? 'N/A').slice(0, 255);
 }
 
 async function getUnsyncedData() {
@@ -81,7 +79,7 @@ async function getDHISSyncData(failed) {
 
 async function getMatched(uid) {
 
-  return await pool.query(`SELECT data FROM public.sessions where uid='${uid}'`)
+  return await pool.query('SELECT data FROM public.sessions WHERE uid = $1', [uid])
     .then(res => {
       if (res && res.rows) {
         var jsonString = JSON.stringify(res.rows);
@@ -260,8 +258,9 @@ async function updateDHISSyncStatus(entryId) {
 async function updateDHISAggregateStatus(id,status,msg) {
   if (id) {
    const safeMsg = sanitizeStatusMessage(msg);
-   await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${safeMsg}'
-    ,last_attempt=now() at time zone 'Africa/Johannesburg'  WHERE id=${id}`);
+   await pool.query(`UPDATE public.dhis_aggregate SET status = $1, error_msg = $2,
+    last_attempt = now() at time zone 'Africa/Johannesburg' WHERE id = $3`,
+    [status, safeMsg, id]);
   }
 }
 
@@ -354,13 +353,15 @@ async function updateDHISAggregateStatusWithSuccess(id, status, msg) {
   if (id) {
     const safeMsg = sanitizeStatusMessage(msg);
     if (status === 'SUCCESS') {
-      await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${safeMsg}',
-        last_attempt=now() at time zone 'Africa/Johannesburg',
-        last_success_date=now() at time zone 'Africa/Johannesburg',
-        value_changed=FALSE WHERE id=${id}`);
+      await pool.query(`UPDATE public.dhis_aggregate SET status = $1, error_msg = $2,
+        last_attempt = now() at time zone 'Africa/Johannesburg',
+        last_success_date = now() at time zone 'Africa/Johannesburg',
+        value_changed = FALSE WHERE id = $3`,
+        [status, safeMsg, id]);
     } else {
-      await pool.query(`UPDATE public.dhis_aggregate SET status='${status}',error_msg='${safeMsg}',
-        last_attempt=now() at time zone 'Africa/Johannesburg' WHERE id=${id}`);
+      await pool.query(`UPDATE public.dhis_aggregate SET status = $1, error_msg = $2,
+        last_attempt = now() at time zone 'Africa/Johannesburg' WHERE id = $3`,
+        [status, safeMsg, id]);
     }
   }
 }
