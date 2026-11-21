@@ -5,5 +5,10 @@
     "rejected and reported as POLICY_OVERLAY_WEAKENED. Everything here is a security",
     "control, so changes require Code Owner review and a security-reviewed:<sha7> label."
   ],
+  "console_exempt_globs": [
+    "tests/**", "test/**", "scripts/**",
+    "**/*.test.*", "**/*.spec.*", "**/*.stories.*",
+    "helper/logger.js"
+  ],
   "exceptions": []
 }
