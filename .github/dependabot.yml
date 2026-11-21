@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # Keeps the pinned security-ci SHA current: Dependabot updates reusable-workflow
+  # `uses:` refs, so central changes arrive as a pull request in this repository and are
+  # gated by this repository's own pipeline.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "github-actions"]
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    versioning-strategy: increase-if-necessary
+    labels: ["dependencies", "javascript"]
+    groups:
+      npm-development:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+      npm-production:
+        dependency-type: "production"
+        update-types: ["patch"]

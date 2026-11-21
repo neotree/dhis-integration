@@ -1,0 +1,8 @@
+# Gitleaks fingerprint ignore file for THIS repository.
+#
+# Each entry is <commit>:<path>:<rule>:<line> and silences exactly one finding at one
+# commit, so it cannot mask a future leak: reintroducing the same secret in a new commit
+# produces a new fingerprint and fails the scan again.
+#
+# Only add an entry after the credential is dead, or after the finding is confirmed to be
+# a false positive. Record which, and when, beside each entry.
